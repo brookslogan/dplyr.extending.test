@@ -8,7 +8,7 @@
 #' @param my_attr dummy attr, just here to test how it moves around
 #'
 #' @export
-new_dedupe_tibble <- function(x, my_attr = 1) {
+new_nodupe_tibble <- function(x, my_attr = 1) {
   if (inherits(x, "decay_nodupe_tibble")) {
     stop("x must not already be a dedupe_tibble")
   }
