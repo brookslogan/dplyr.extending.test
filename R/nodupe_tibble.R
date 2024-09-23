@@ -24,7 +24,7 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
 #' @keywords internal
 check_nodupe_tibble_is_valid <- function(x) {
   # TODO proper caller_arg passing
-  if (anyDuplicated(x) || nrow(x) > 1L && ncol(x) == 0L) {
+  if (anyDuplicated(x) != 0L || nrow(x) > 1L && ncol(x) == 0L) {
     "contained duplicates"
   } else {
     TRUE
