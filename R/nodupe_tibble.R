@@ -17,6 +17,7 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
   }
   class(x) <- "decay_nodupe_tibble"
   attr(x, "my_attr") <- my_attr
+  x
 }
 
 #' checkmate-style check function
@@ -88,7 +89,9 @@ as_nodupe_tibble.nodupe_tibble <- function(x, ...) {
 
 #' @export
 as_nodupe_tibble.tbl_df <- function(x, my_attr = 1, ...) {
-  validate_nodupe_tibble(new_nodupe_tibble(x, my_attr))
+  result <- new_nodupe_tibble(x, my_attr)
+  validate_nodupe_tibble(result)
+  result
 }
 
 # TODO proper pillar/vctrs interop instead of custom print
