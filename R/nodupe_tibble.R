@@ -54,9 +54,9 @@ decay_nodupe_tibble <- function(x, ...) {
 #' @keywords internal
 maybe_decay_nodupe_tibble <- function(x) {
   if (isTRUE(check_df_nodupe_tibble_compatible(x, attr(x, "my_attr")))) {
-    decay_nodupe_tibble(x)
-  } else {
     x
+  } else {
+    decay_nodupe_tibble(x)
   }
 }
 
