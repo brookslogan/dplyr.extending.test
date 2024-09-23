@@ -107,7 +107,7 @@ print.nodupe_tibble <- function(x, ...) {
 #' @importFrom dplyr dplyr_row_slice
 #' @export
 dplyr_row_slice.nodupe_tibble <- function(data, i, ...) {
-  if (anyDuplicated(i) != 0L) {
+  if (is.numeric(i) && anyDuplicated(i) != 0L) {
     # We will have duplicates iff here; decay & re-dispatch. This should be more
     # efficient than maybe_decay_nodupe_tibble-ing.
     dplyr_row_slice(decay_nodupe_tibble(data), i, ...)
