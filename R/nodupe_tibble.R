@@ -15,7 +15,7 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
   if (!inherits(x, "data.frame")) {
     stop("x must be a data.frame")
   }
-  class(x) <- "decay_nodupe_tibble"
+  class(x) <- c("decay_nodupe_tibble", class(x))
   attr(x, "my_attr") <- my_attr
   x
 }
