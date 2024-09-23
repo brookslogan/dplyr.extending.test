@@ -151,12 +151,13 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
 
 #' @importFrom dplyr group_by
 #' @export
-group_by.dedupe_tibble <- function(...) {
-  new_dedupe_tibble(NextMethod())
+group_by.nodupe_tibble <- function(...) {
+  cat("HERE\n")
+  new_nodupe_tibble(NextMethod())
 }
 
 #' @importFrom dplyr ungroup
 #' @export
-ungroup.dedupe_tibble <- function(...) {
-  new_dedupe_tibble(NextMethod())
+ungroup.nodupe_tibble <- function(...) {
+  new_nodupe_tibble(NextMethod())
 }
