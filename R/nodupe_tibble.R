@@ -15,7 +15,7 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
   if (!inherits(x, "data.frame")) {
     stop("x must be a data.frame")
   }
-  class(x) <- c("decay_nodupe_tibble", class(x))
+  class(x) <- c("nodupe_tibble", class(x))
   attr(x, "my_attr") <- my_attr
   x
 }
@@ -102,7 +102,6 @@ print.nodupe_tibble <- function(x, ...) {
   cat("# my_attr:", attr(x, "my_attr"), "\n")
   NextMethod()
 }
-
 
 #' @importFrom dplyr dplyr_row_slice
 #' @export
