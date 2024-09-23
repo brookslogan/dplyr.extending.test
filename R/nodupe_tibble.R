@@ -20,10 +20,11 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
   x
 }
 
-#' checkmate-style check function
+#' Is / why isn't data.frame/subclass `x` compatible with nodupe_tibble invariants
 #'
-#' @keywords internal
-check_nodupe_tibble_is_valid <- function(x) {
+#' @param x data.frame or subclass
+#' @return TRUE or str
+check_df_nodupe_tibble_compatible <- function(x, my_attr) {
   # TODO proper caller_arg passing
   if (anyDuplicated(x) != 0L || nrow(x) > 1L && ncol(x) == 0L) {
     "contained duplicates"
@@ -35,7 +36,7 @@ check_nodupe_tibble_is_valid <- function(x) {
 #' @export
 validate_nodupe_tibble <- function(x) {
   # TODO proper caller_arg passing
-  checkmate::assert(check_nodupe_tibble_is_valid(x))
+  checkmate::assert(check_df_nodupe_tibble_compatible(x, attr(x, "my_attr")))
 }
 
 #' Remove nodupe_tibble class & attrs:
@@ -52,7 +53,7 @@ decay_nodupe_tibble <- function(x, ...) {
 #'
 #' @keywords internal
 maybe_decay_nodupe_tibble <- function(x) {
-  if (anyDuplicated(x) || nrow(x) > 1L && ncol(x) == 0L) {
+  if (isTRUE(check_df_nodupe_tibble_compatible(x, attr(x, "my_attr")))) {
     decay_nodupe_tibble(x)
   } else {
     x
@@ -90,7 +91,7 @@ as_nodupe_tibble.nodupe_tibble <- function(x, ...) {
 #' @export
 as_nodupe_tibble.tbl_df <- function(x, my_attr = 1, ...) {
   result <- new_nodupe_tibble(x, my_attr)
-  validate_nodupe_tibble(result)
+  checkmate::assert(check_df_nodupe_tibble_compatible(x, my_attr))
   result
 }
 
