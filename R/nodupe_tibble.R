@@ -77,6 +77,7 @@ maybe_decay_nodupe_tibble <- function(x) {
 
 #' Convert `x` to a `nodupe_tibble`
 #'
+#' @param my_attr dummy attr, just here to test how it moves around
 #' @export
 as_nodupe_tibble <- function(x, ...) UseMethod("as_nodupe_tibble")
 
@@ -85,7 +86,6 @@ as_nodupe_tibble.nodupe_tibble <- function(x, ...) {
   x
 }
 
-#' @param my_attr dummy attr, just here to test how it moves around
 #' @export
 as_nodupe_tibble.tbl_df <- function(x, my_attr = 1, ...) {
   validate_nodupe_tibble(new_tibble(x, my_attr))
