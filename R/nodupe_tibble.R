@@ -182,7 +182,10 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
 
 #' @export
 `names<-.nodupe_tibble` <- function(x, value) {
-  NextMethod()
+  res <- NextMethod()
+  if (!inherits(res, "nodupe_tibble")) {
+    res <- new_nodupe_tibble(res, attr(x, "my_attr"))
+  }
 }
 
 # XXX this approach to grouping, putting nodupe_tibble in front of grouped_df,
