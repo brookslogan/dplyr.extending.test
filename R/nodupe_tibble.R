@@ -10,7 +10,7 @@
 #' @export
 new_nodupe_tibble <- function(x, my_attr = 1) {
   if (inherits(x, "decay_nodupe_tibble")) {
-    stop("x must not already be a dedupe_tibble")
+    stop("x must not already be a nodupe_tibble")
   }
   if (!inherits(x, "data.frame")) {
     stop("x must be a data.frame")
@@ -60,31 +60,34 @@ maybe_decay_nodupe_tibble <- function(x) {
   }
 }
 
-## #' Attach nodupe_tibble class & attrs from template without checking validity
-## #'
-## #' This is like an inverse operation of [`decay_nodupe_tibble`]. It's similar to
-## #' `dplyr_reconstruct` but it performs no validation on `data` and performs no
-## #' validation or recalculations of `my_attr`.
-## #'
-## #' @keywords internal
-## reclass_nodupe_tibble <- function(data, my_attr) {
-##   reclassed <- if (inherits(data, "nodupe_tibble")) {
-##     # (or should this move nodupe_tibble to the head of the class vector?)
-##     data
-##   } else {
-##     `class<-`(x, c("nodupe_tibble", class(x)))
-##   }
-##   `attr<-`(reclassed, "my_attr", my_attr)
-## }
+# #' Attach nodupe_tibble class & attrs from template without checking validity
+# #'
+# #' This is like an inverse operation of [`decay_nodupe_tibble`]. It's similar to
+# #' `dplyr_reconstruct` but it performs no validation on `data` and performs no
+# #' validation or recalculations of `my_attr`.
+# #'
+# #' @keywords internal
+# reclass_nodupe_tibble <- function(data, my_attr) {
+#   reclassed <- if (inherits(data, "nodupe_tibble")) {
+#     # (or should this move nodupe_tibble to the head of the class vector?)
+#     data
+#   } else {
+#     `class<-`(x, c("nodupe_tibble", class(x)))
+#   }
+#   `attr<-`(reclassed, "my_attr", my_attr)
+# }
 
 #' Convert `x` to a `nodupe_tibble`
 #'
 #' @param my_attr dummy attr, just here to test how it moves around
 #' @export
-as_nodupe_tibble <- function(x, ...) UseMethod("as_nodupe_tibble")
+as_nodupe_tibble <- function(x, my_attr = 1, ...) UseMethod("as_nodupe_tibble")
 
 #' @export
-as_nodupe_tibble.nodupe_tibble <- function(x, ...) {
+as_nodupe_tibble.nodupe_tibble <- function(x, my_attr = 1, ...) {
+  attr(x, "my_attr") <- my_attr
+  # If my_attr actually influenced duplicate check, we might need to re-validate
+  # here if the my_attr actually changed.
   x
 }
 
@@ -131,12 +134,50 @@ dplyr_col_modify.nodupe_tibble <- function(data, cols) {
 #' @importFrom dplyr dplyr_reconstruct
 #' @export
 dplyr_reconstruct.nodupe_tibble <- function(data, template) {
-  maybe_decay_nodupe_tibble(NextMethod())
+  res <- NextMethod()
+  # res <- new_nodupe_tibble(res, attr(template, "my_attr"))
+  res <- maybe_decay_nodupe_tibble(res)
+  res
 }
+
+# nodupe_tibble_col_select <- function(x, iloc) {
+#   # decay so we can access
+#   res <- decay_nodupe_tibble(x)[iloc]
+#   # columns may have been removed; 
+#   res <- new_nodupe_tibble(res, attr(x, "my_attr"))
+#   res <- maybe_decay_nodupe_tibble(res)
+# }
 
 #' @export
 `[.nodupe_tibble` <- function(x, i, j, ...) {
-  maybe_decay_nodupe_tibble(NextMethod())
+  if (!missing(i) && !missing(j)) {
+    # `i` is a row selection; for our purposes we can pretend like this happens
+    # before the col selection rather than simultaneously.
+    #
+    # dplyr_row_slice will take care of typechecking on i for the types we will
+    # support
+    #
+    # Re-dispatch rather than NextMethod since this might decay:
+    dplyr_row_slice(x, i)[j]
+  } else {
+    # We're doing column selection (or everything-selection for some reason).
+    res <- NextMethod()
+    # We might have selected away columns, and that might have introduced
+    # duplicates. And NextMethod() might have dropped our class. Reclass &
+    # revalidate:
+    #
+    # TODO consider a `maybe_as_nodupe_tibble` method
+    #
+    # TODO consider optimizations
+    maybe_new_my_attr <- attr(x, "my_attr")
+    if (inherits(res, "nodupe_tibble")) {
+      attr(res, "my_attr") <- maybe_new_my_attr
+    } else {
+      res <- new_nodupe_tibble(res, maybe_new_my_attr)
+    }
+    res <- maybe_decay_nodupe_tibble(res)
+    res
+  }
 }
 
 #' @export
@@ -144,9 +185,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   NextMethod()
 }
 
-# FIXME TODO groupedness interactions... do we need a reclass?
-
-# XXX this approach to grouping, putting dedupe_tibble in front of grouped_df,
+# XXX this approach to grouping, putting nodupe_tibble in front of grouped_df,
 # seems suboptimal, but it's closest to what we have in epi_df currently and I
 # don't want to mess around with this part of it now.
 

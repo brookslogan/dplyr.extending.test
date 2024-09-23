@@ -4,7 +4,7 @@
 \alias{as_nodupe_tibble}
 \title{Convert \code{x} to a \code{nodupe_tibble}}
 \usage{
-as_nodupe_tibble(x, ...)
+as_nodupe_tibble(x, my_attr = 1, ...)
 }
 \arguments{
 \item{my_attr}{dummy attr, just here to test how it moves around}

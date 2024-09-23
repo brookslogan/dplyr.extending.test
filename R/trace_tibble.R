@@ -76,3 +76,17 @@ dplyr_reconstruct.trace_tibble <- function(data, template) {
   ## print(x)
   NextMethod()
 }
+
+#' @importFrom dplyr group_by
+#' @export
+group_by.trace_tibble <- function(...) {
+  cat("group_by.trace_tibble\n")
+  as_trace_tibble(NextMethod())
+}
+
+#' @importFrom dplyr ungroup
+#' @export
+ungroup.trace_tibble <- function(...) {
+  cat("ungroup.trace_tibble\n")
+  as_trace_tibble(NextMethod())
+}
