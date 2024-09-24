@@ -150,7 +150,11 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
 
 #' @export
 `[.nodupe_tibble` <- function(x, i, j, ...) {
-  if (!missing(i) && !missing(j)) {
+  # Row selections are performed with x[i,j] and x[i,] but not x[i]; counting
+  # args provides a way of detecting this properly while `missing` can't
+  # distinguish between the 2nd and 3rd cases.
+  performing_row_selection <- nargs() - rlang::dots_n(...) == 3L
+  if (performing_row_selection) {
     # `i` is a row selection; for our purposes we can pretend like this happens
     # before the col selection rather than simultaneously.
     #
