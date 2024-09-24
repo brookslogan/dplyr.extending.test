@@ -156,6 +156,10 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   # args.)
   performing_row_selection <- nargs() - rlang::dots_n(...) == 3L
   if (performing_row_selection) {
+    # XXX probably should do col selection first if possible, as this seems more
+    # efficient indexing-wise; however, not sure if that become more complicated
+    # dupe-checking wise
+    #
     # `i` is a row selection; for our purposes we can pretend like this happens
     # before the col selection rather than simultaneously.
     #
