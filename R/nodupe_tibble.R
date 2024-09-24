@@ -169,7 +169,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     # Re-dispatch rather than NextMethod since this might decay:
     dplyr_row_slice(x, i)[j]
   } else {
-    # We're doing column selection (or everything-selection for some reason).
+    # We're doing column selection or everything-selection.
     res <- NextMethod()
     # We might have selected away columns, and that might have introduced
     # duplicates. And NextMethod() might have dropped our class. Reclass &
