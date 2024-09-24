@@ -154,20 +154,27 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   # args provides a way of detecting this properly while `missing` can't
   # distinguish between the 2nd and 3rd cases. (Counting args includes blank
   # args.)
-  performing_row_selection <- nargs() - rlang::dots_n(...) == 3L
-  if (performing_row_selection) {
+  i_is_optional_row_selection <- nargs() - rlang::dots_n(...) == 3L
+  if (i_is_optional_row_selection) {
     # XXX probably should do col selection first if possible, as this seems more
     # efficient indexing-wise; however, not sure if that become more complicated
     # dupe-checking wise
     #
-    # `i` is a row selection; for our purposes we can pretend like this happens
-    # before the col selection rather than simultaneously.
+    # `i` is an optional row selection; for our purposes we can pretend like
+    # this happens before the col selection rather than simultaneously.
     #
     # dplyr_row_slice will take care of typechecking on i for the types we will
     # support
     #
-    # Re-dispatch rather than NextMethod since this might decay:
-    dplyr_row_slice(x, i)[j]
+    if (missing(i)) {
+      # Re-dispatch rather than NextMethod() as it's not clear how to alter
+      # nargs():
+      x[j]
+    } else {
+      # Re-dispatch rather than NextMethod() due to the above reason + because
+      # row slice might have a different class:
+      dplyr_row_slice(x, i)[j]
+    }
   } else {
     # We're doing column selection or everything-selection.
     res <- NextMethod()
