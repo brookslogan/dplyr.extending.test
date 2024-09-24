@@ -169,11 +169,17 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     if (missing(i)) {
       # Re-dispatch rather than NextMethod() as it's not clear how to alter
       # nargs():
+      #
+      # FIXME properly delegate ...
       x[j]
     } else {
       # Re-dispatch rather than NextMethod() due to the above reason + because
       # row slice might have a different class:
       dplyr_row_slice(x, i)[j]
+
+      # TODO consider a bare col select that tries to correctly set attribute
+      # but does not post-decay? Or dispatch row slice etc. to `[` as the core
+      # impl?  Don't check i if already have to revalidate based on j?
     }
   } else {
     # We're doing column selection or everything-selection.
