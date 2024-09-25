@@ -252,6 +252,10 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
 #         # efficient than maybe_decay_nodupe_tibble-ing.
 #         res <- dplyr_row_slice(decay_nodupe_tibble(data), i, ...)
 #       } else {
+#         # FIXME ensure char row indices not allowed
+#         #
+#         # TODO ensure matrix indexing attempt fails
+#         #
 #         # We won't have duplicates: ensure res is nodupe:
 #         maybe_new_my_attr <- attr(x, "my_attr")
 #         res <- NextMethod()
