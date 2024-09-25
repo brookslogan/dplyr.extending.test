@@ -9,7 +9,7 @@
 #'
 #' @export
 new_nodupe_tibble <- function(x, my_attr = 1) {
-  if (inherits(x, "decay_nodupe_tibble")) {
+  if (inherits(x, "nodupe_tibble")) {
     stop("x must not already be a nodupe_tibble")
   }
   if (!inherits(x, "data.frame")) {
@@ -19,6 +19,15 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
   class(x) <- c("nodupe_tibble", class(x))
   attr(x, "my_attr") <- my_attr
   x
+}
+
+#' Ensure nodupe_tibble is head class & attrs as given
+#'
+#' @keywords internal
+new_nodupe_tibble_idempotent <- function(x, my_attr = 1) {
+  class_x <- class(x)
+  class(x) <- class_x[class_x != "nodupe_tibble"]
+  new_nodupe_tibble(x, my_attr)
 }
 
 #' Is / why isn't data.frame/subclass `x` compatible with nodupe_tibble invariants
@@ -185,6 +194,8 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   } else {
     # We're doing column selection or everything-selection.
     res <- NextMethod()
+    # FIXME drop = TRUE not being forwarded?
+    #
     # We might have selected away columns, and that might have introduced
     # duplicates. And NextMethod() might have dropped our class. Reclass &
     # revalidate:
@@ -192,13 +203,11 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     # TODO consider a `maybe_as_nodupe_tibble` method
     #
     # TODO consider optimizations
-    maybe_new_my_attr <- attr(x, "my_attr")
-    if (inherits(res, "nodupe_tibble")) {
-      attr(res, "my_attr") <- maybe_new_my_attr
-    } else {
-      res <- new_nodupe_tibble(res, maybe_new_my_attr)
+    if (is.data.frame(res)) {
+      maybe_new_my_attr <- attr(x, "my_attr")
+      res <- new_nodupe_tibble_idempotent(res, maybe_new_my_attr)
+      res <- maybe_decay_nodupe_tibble(res)
     }
-    res <- maybe_decay_nodupe_tibble(res)
     res
   }
 }
