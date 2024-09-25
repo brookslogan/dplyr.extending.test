@@ -24,11 +24,12 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
 #' Ensure nodupe_tibble is head class & attrs as given
 #'
 #' @keywords internal
-new_nodupe_tibble_idempotent <- function(x, my_attr = 1) {
+ensure_new_nodupe_tibble <- function(x, my_attr = 1) {
   class_x <- class(x)
   class(x) <- class_x[class_x != "nodupe_tibble"]
   new_nodupe_tibble(x, my_attr)
 }
+
 
 #' Is / why isn't data.frame/subclass `x` compatible with nodupe_tibble invariants
 #'
@@ -68,6 +69,13 @@ maybe_decay_nodupe_tibble <- function(x) {
   } else {
     decay_nodupe_tibble(x)
   }
+}
+
+#' Ensure nodupe is head class & attrs set if compatible
+#'
+#' @keywords internal
+maybe_new_nodupe_tibble <- function(x, my_attr = 1) {
+  maybe_decay_nodupe_tibble(ensure_new_nodupe_tibble(x, my_attr))
 }
 
 # #' Attach nodupe_tibble class & attrs from template without checking validity
@@ -205,8 +213,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     # TODO consider optimizations
     if (is.data.frame(res)) {
       maybe_new_my_attr <- attr(x, "my_attr")
-      res <- new_nodupe_tibble_idempotent(res, maybe_new_my_attr)
-      res <- maybe_decay_nodupe_tibble(res)
+      res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
     }
     res
   }
