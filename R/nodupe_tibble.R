@@ -13,6 +13,7 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
     stop("x must not already be a nodupe_tibble")
   }
   if (!inherits(x, "data.frame")) {
+    # XXX probably should make this tibble....
     stop("x must be a data.frame")
   }
   class(x) <- c("nodupe_tibble", class(x))
@@ -201,6 +202,85 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     res
   }
 }
+
+# Alternative approach that could be used to back some dplyr_ stuff:
+
+# #' @export
+# `[.nodupe_tibble` <- function(x, i, j, ..., drop = FALSE) {
+#   # Standardize to i being optional row selection, j being optional col
+#   # selection:
+#   i_is_col_selection <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
+#   if (i_is_col_selection) {
+#     # We were called along the lines of x[cols] (or x[i = cols]); standardize:
+#     j <- i
+#     i <- rlang::missing_arg()
+#     # XXX we must forward many/all of our args manually to NextMethod when
+#     # transformed j is present in order for it to work properly when we do this
+#     # transformation. Alternatively, we could re-dispatch.
+#   } else {
+#     # We were called along the lines of the following: x[i,j], x[i,], x[,j],
+#     # x[,], x[j = j], or x[]; we're already standardized.
+#   }
+#   # XXX perf: we could also standardize away no-op row and/or col selections to
+#   # try to improve performance, though identifying those could be complex and
+#   # might actually be slower.
+#   if (missing(i)) {
+#     if (missing(j)) {
+#       # i missing, j missing:
+#       res <- x
+#     } else {
+#       # i missing, j present:
+#       maybe_new_my_attr <- attr(x, "my_attr")
+#       # res <- NextMethod(j = j)
+#       res <- NextMethod(x = x, i = i, j = j, ..., drop = drop)
+#       if (inherits(res, "nodupe_tibble")) {
+#         attr(res, "my_attr") <- maybe_new_my_attr
+#       } else {
+#         # FIXME non-data.frame case, also non-tibble data.frame case
+#         #
+#         # FIXME getting non-data.frame case despite our drop = FALSE
+#         # default..... somehow we're feeding in one of i or j as drop??
+#         res <- new_nodupe_tibble(res, maybe_new_my_attr)
+#       }
+#       res <- maybe_decay_nodupe_tibble(res)
+#     }
+#   } else {
+#     if (missing(j)) {
+#       # i present, j missing:
+#       if (is.numeric(i) && anyDuplicated(i) != 0L) {
+#         # We will have duplicates; decay & re-dispatch. This should be more
+#         # efficient than maybe_decay_nodupe_tibble-ing.
+#         res <- dplyr_row_slice(decay_nodupe_tibble(data), i, ...)
+#       } else {
+#         # We won't have duplicates: ensure res is nodupe:
+#         maybe_new_my_attr <- attr(x, "my_attr")
+#         res <- NextMethod()
+#         if (inherits(res, "nodupe_tibble")) {
+#           attr(res, "my_attr") <- maybe_new_my_attr
+#         } else {
+#           res <- new_nodupe_tibble(res, maybe_new_my_attr)
+#         }
+#       }
+#     } else {
+#       # i present, j present:
+#       maybe_new_my_attr <- attr(x, "my_attr")
+#       # res <- NextMethod(j = j)
+#       res <- NextMethod(x = x, i = i, j = j, ..., drop = drop)
+#       if (inherits(res, "nodupe_tibble")) {
+#         attr(res, "my_attr") <- maybe_new_my_attr
+#       } else {
+#         # FIXME non-data.frame case, also non-tibble data.frame case
+#         #
+#         # FIXME getting non-data.frame case despite our drop = FALSE; somehow
+#         # NextMethod is getting drop = j
+#         res <- new_nodupe_tibble(res, maybe_new_my_attr)
+#       }
+#       res <- maybe_decay_nodupe_tibble(res)
+#     }
+#     # FIXME refactor
+#     res
+#   }
+# }
 
 #' @export
 `names<-.nodupe_tibble` <- function(x, value) {
