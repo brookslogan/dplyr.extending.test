@@ -125,16 +125,22 @@ print.nodupe_tibble <- function(x, ...) {
   NextMethod()
 }
 
+# #' @importFrom dplyr dplyr_row_slice
+# #' @export
+# dplyr_row_slice.nodupe_tibble <- function(data, i, ...) {
+#   if (is.numeric(i) && anyDuplicated(i) != 0L) {
+#     # We will have duplicates iff here; decay & re-dispatch. This should be more
+#     # efficient than maybe_decay_nodupe_tibble-ing.
+#     dplyr_row_slice(decay_nodupe_tibble(data), i, ...)
+#   } else {
+#     NextMethod()
+#   }
+# }
+
 #' @importFrom dplyr dplyr_row_slice
 #' @export
 dplyr_row_slice.nodupe_tibble <- function(data, i, ...) {
-  if (is.numeric(i) && anyDuplicated(i) != 0L) {
-    # We will have duplicates iff here; decay & re-dispatch. This should be more
-    # efficient than maybe_decay_nodupe_tibble-ing.
-    dplyr_row_slice(decay_nodupe_tibble(data), i, ...)
-  } else {
-    NextMethod()
-  }
+  data[i,]
 }
 
 #' @importFrom dplyr dplyr_col_modify
@@ -153,8 +159,12 @@ dplyr_col_modify.nodupe_tibble <- function(data, cols) {
 #' @export
 dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   res <- NextMethod()
-  # res <- new_nodupe_tibble(res, attr(template, "my_attr"))
-  res <- maybe_decay_nodupe_tibble(res)
+  # # res <- new_nodupe_tibble(res, attr(template, "my_attr"))
+  # res <- maybe_decay_nodupe_tibble(res)
+  #
+  # FIXME it's unclear that just using template attrs is right. E.g. we may have
+  # additional key columns added and should preserve them...
+  res <- maybe_new_nodupe_tibble(res, attr(template, "my_attr"))
   res
 }
 
@@ -167,140 +177,116 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
 # }
 
 #' @export
-`[.nodupe_tibble` <- function(x, i, j, ...) {
-  # Row selections are performed with x[i,j] and x[i,] but not x[i]; counting
-  # args provides a way of detecting this properly while `missing` can't
-  # distinguish between the 2nd and 3rd cases. (Counting args includes blank
-  # args.)
-  i_is_optional_row_selection <- nargs() - rlang::dots_n(...) == 3L
-  if (i_is_optional_row_selection) {
-    # XXX probably should do col selection first if possible, as this seems more
-    # efficient indexing-wise; however, not sure if that become more complicated
-    # dupe-checking wise
-    #
-    # `i` is an optional row selection; for our purposes we can pretend like
-    # this happens before the col selection rather than simultaneously.
-    #
-    # dplyr_row_slice will take care of typechecking on i for the types we will
-    # support
-    #
-    if (missing(i)) {
-      # Re-dispatch rather than NextMethod() as it's not clear how to alter
-      # nargs():
-      #
-      # FIXME properly delegate ...
-      x[j]
-    } else {
-      # Re-dispatch rather than NextMethod() due to the above reason + because
-      # row slice might have a different class:
-      dplyr_row_slice(x, i)[j]
-
-      # TODO consider a bare col select that tries to correctly set attribute
-      # but does not post-decay? Or dispatch row slice etc. to `[` as the core
-      # impl?  Don't check i if already have to revalidate based on j?
-    }
-  } else {
-    # We're doing column selection or everything-selection.
-    res <- NextMethod()
-    # FIXME drop = TRUE not being forwarded?
-    #
-    # We might have selected away columns, and that might have introduced
-    # duplicates. And NextMethod() might have dropped our class. Reclass &
-    # revalidate:
-    #
-    # TODO consider a `maybe_as_nodupe_tibble` method
-    #
-    # TODO consider optimizations
-    if (is.data.frame(res)) {
-      maybe_new_my_attr <- attr(x, "my_attr")
-      res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
-    }
-    res
-  }
-}
-
-# Alternative approach that could be used to back some dplyr_ stuff:
-
-# #' @export
-# `[.nodupe_tibble` <- function(x, i, j, ..., drop = FALSE) {
-#   # Standardize to i being optional row selection, j being optional col
-#   # selection:
-#   i_is_col_selection <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
-#   if (i_is_col_selection) {
-#     # We were called along the lines of x[cols] (or x[i = cols]); standardize:
-#     j <- i
-#     i <- rlang::missing_arg()
-#     # XXX we must forward many/all of our args manually to NextMethod when
-#     # transformed j is present in order for it to work properly when we do this
-#     # transformation. Alternatively, we could re-dispatch.
-#   } else {
-#     # We were called along the lines of the following: x[i,j], x[i,], x[,j],
-#     # x[,], x[j = j], or x[]; we're already standardized.
-#   }
-#   # XXX perf: we could also standardize away no-op row and/or col selections to
-#   # try to improve performance, though identifying those could be complex and
-#   # might actually be slower.
-#   if (missing(i)) {
-#     if (missing(j)) {
-#       # i missing, j missing:
-#       res <- x
+# `[.nodupe_tibble` <- function(x, i, j, ...) {
+#   # Row selections are performed with x[i,j] and x[i,] but not x[i]; counting
+#   # args provides a way of detecting this properly while `missing` can't
+#   # distinguish between the 2nd and 3rd cases. (Counting args includes blank
+#   # args.)
+#   i_is_optional_row_selection <- nargs() - rlang::dots_n(...) == 3L
+#   if (i_is_optional_row_selection) {
+#     # XXX probably should do col selection first if possible, as this seems more
+#     # efficient indexing-wise; however, not sure if that become more complicated
+#     # dupe-checking wise
+#     #
+#     # `i` is an optional row selection; for our purposes we can pretend like
+#     # this happens before the col selection rather than simultaneously.
+#     #
+#     # dplyr_row_slice will take care of typechecking on i for the types we will
+#     # support
+#     #
+#     if (missing(i)) {
+#       # Re-dispatch rather than NextMethod() as it's not clear how to alter
+#       # nargs():
+#       #
+#       # FIXME properly delegate ...
+#       x[j]
 #     } else {
-#       # i missing, j present:
-#       maybe_new_my_attr <- attr(x, "my_attr")
-#       # res <- NextMethod(j = j)
-#       res <- NextMethod(x = x, i = i, j = j, ..., drop = drop)
-#       if (inherits(res, "nodupe_tibble")) {
-#         attr(res, "my_attr") <- maybe_new_my_attr
-#       } else {
-#         # FIXME non-data.frame case, also non-tibble data.frame case
-#         #
-#         # FIXME getting non-data.frame case despite our drop = FALSE
-#         # default..... somehow we're feeding in one of i or j as drop??
-#         res <- new_nodupe_tibble(res, maybe_new_my_attr)
-#       }
-#       res <- maybe_decay_nodupe_tibble(res)
+#       # Re-dispatch rather than NextMethod() due to the above reason + because
+#       # row slice might have a different class:
+#       dplyr_row_slice(x, i)[j]
+
+#       # TODO consider a bare col select that tries to correctly set attribute
+#       # but does not post-decay? Or dispatch row slice etc. to `[` as the core
+#       # impl?  Don't check i if already have to revalidate based on j?
 #     }
 #   } else {
-#     if (missing(j)) {
-#       # i present, j missing:
-#       if (is.numeric(i) && anyDuplicated(i) != 0L) {
-#         # We will have duplicates; decay & re-dispatch. This should be more
-#         # efficient than maybe_decay_nodupe_tibble-ing.
-#         res <- dplyr_row_slice(decay_nodupe_tibble(data), i, ...)
-#       } else {
-#         # FIXME ensure char row indices not allowed
-#         #
-#         # TODO ensure matrix indexing attempt fails
-#         #
-#         # We won't have duplicates: ensure res is nodupe:
-#         maybe_new_my_attr <- attr(x, "my_attr")
-#         res <- NextMethod()
-#         if (inherits(res, "nodupe_tibble")) {
-#           attr(res, "my_attr") <- maybe_new_my_attr
-#         } else {
-#           res <- new_nodupe_tibble(res, maybe_new_my_attr)
-#         }
-#       }
-#     } else {
-#       # i present, j present:
+#     # We're doing column selection or everything-selection.
+#     res <- NextMethod()
+#     # FIXME drop = TRUE not being forwarded?
+#     #
+#     # We might have selected away columns, and that might have introduced
+#     # duplicates. And NextMethod() might have dropped our class. Reclass &
+#     # revalidate:
+#     #
+#     # TODO consider a `maybe_as_nodupe_tibble` method
+#     #
+#     # TODO consider optimizations
+#     if (is.data.frame(res)) {
 #       maybe_new_my_attr <- attr(x, "my_attr")
-#       # res <- NextMethod(j = j)
-#       res <- NextMethod(x = x, i = i, j = j, ..., drop = drop)
-#       if (inherits(res, "nodupe_tibble")) {
-#         attr(res, "my_attr") <- maybe_new_my_attr
-#       } else {
-#         # FIXME non-data.frame case, also non-tibble data.frame case
-#         #
-#         # FIXME getting non-data.frame case despite our drop = FALSE; somehow
-#         # NextMethod is getting drop = j
-#         res <- new_nodupe_tibble(res, maybe_new_my_attr)
-#       }
-#       res <- maybe_decay_nodupe_tibble(res)
+#       res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
 #     }
-#     # FIXME refactor
 #     res
 #   }
 # }
+
+# Alternative approach that could be used to back some dplyr_ stuff:
+
+#' @export
+`[.nodupe_tibble` <- function(x, i, j, ..., drop = FALSE) {
+  # Standardize to i being optional row selection, j being optional col
+  # selection:
+  i_is_col_selection <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
+  if (i_is_col_selection) {
+    # We were called along the lines of x[cols] (or x[i = cols]); standardize.
+    # NextMethod() appears to have issues when we change missingness patterns,
+    # so re-dispatch:
+    x[,j, ..., drop = drop]
+  } else {
+    # We were called along the lines of the following: x[i,j], x[i,], x[,j],
+    # x[,], x[j = j], or x[]; we're already standardized.
+  }
+  # XXX perf: we could also standardize away no-op row and/or col selections to
+  # try to improve performance, though identifying those could be complex and
+  # might actually be slower.
+  if (missing(i)) {
+    if (missing(j)) {
+      # i missing, j missing:
+      res <- x
+    } else {
+      # i missing, j present:
+      res <- NextMethod()
+      if (is.data.frame(res)) {
+        maybe_new_my_attr <- attr(x, "my_attr")
+        res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
+      }
+    }
+  } else {
+    if (missing(j)) {
+      # i present, j missing:
+      if (is.numeric(i) && anyDuplicated(i) != 0L) {
+        # We will have duplicates; decay & re-dispatch. This should be more
+        # efficient than maybe_decay_nodupe_tibble-ing.
+        res <- decay_nodupe_tibble(data)[i, j, ..., drop = drop]
+      } else {
+        # FIXME ensure char row indices not allowed
+        #
+        # TODO ensure matrix indexing attempt fails
+        #
+        # We won't have duplicates: ensure res is nodupe:
+        res <- ensure_new_nodupe_tibble(NextMethod())
+      }
+    } else {
+      # i present, j present:
+      res <- NextMethod()
+      if (is.data.frame(res)) {
+        maybe_new_my_attr <- attr(x, "my_attr")
+        res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
+      }
+    }
+    # FIXME refactor
+    res
+  }
+}
 
 #' @export
 `names<-.nodupe_tibble` <- function(x, value) {
