@@ -12,9 +12,8 @@ new_nodupe_tibble <- function(x, my_attr = 1) {
   if (inherits(x, "nodupe_tibble")) {
     stop("x must not already be a nodupe_tibble")
   }
-  if (!inherits(x, "data.frame")) {
-    # XXX probably should make this tibble....
-    stop("x must be a data.frame")
+  if (!tibble::is_tibble(x)) {
+    stop("x must be a tibble")
   }
   class(x) <- c("nodupe_tibble", class(x))
   attr(x, "my_attr") <- my_attr
