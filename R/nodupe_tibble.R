@@ -176,7 +176,8 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   #
   # FIXME it's unclear that just using template attrs is right. E.g. we may have
   # additional key columns added and should preserve them...
-  res <- maybe_new_nodupe_tibble0(res, attr(template, "my_attr"))
+  maybe_new_my_attr <- attr(template, "my_attr")
+  res <- maybe_new_nodupe_tibble0(res, maybe_new_my_attr)
   res
 }
 
@@ -255,7 +256,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     } else {
       # Standardize; NextMethod() appears to have issues when we change
       # missingness patterns, so re-dispatch:
-      return(x[,i, ..., drop = drop])
+      return(x[, i, ..., drop = drop])
     }
   }
 
@@ -268,9 +269,15 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   if (missing(i)) {
     if (missing(j)) {
       # i missing, j missing:
+      #
+      # "Everything" selection; let's assume no (data.table-like) special
+      # behavior of "subclasses" in this case, and skip delegation.
       return(x)
     } else {
       # i missing, j present:
+      #
+      # Col selection might mess up nodupe invariant or yield non-data.frame, so
+      # validate.
       maybe_new_my_attr <- attr(x, "my_attr")
       return(maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr))
     }
@@ -279,19 +286,23 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
       # i present, j missing:
       if (is.numeric(i) && anyDuplicated(i) != 0L) {
         # We will have duplicates; decay & re-dispatch. This should be more
-        # efficient than maybe_decay_nodupe_tibble-ing.
+        # efficient than maybe_new_nodupe_tibble-ing the result.
         return(decay_nodupe_tibble(data)[i, j, ..., drop = drop])
       } else {
         # FIXME ensure char row indices not allowed
         #
-        # TODO ensure matrix indexing attempt fails
-        #
-        # We won't have duplicates: ensure res is nodupe:
-        res <- ensure_new_nodupe_tibble(NextMethod())
+        # We shouldn't have duplicates, just enforce right class&attr:
+        new_my_attr <- attr(x, "my_attr")
+        return(ensure_new_nodupe_tibble(NextMethod(), new_my_attr))
       }
     } else {
       # i present, j present:
-      res <- maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr)
+      #
+      # Col selection might mess up nodupe invariant or yield non-data.frame, so
+      # validate. Since we're already validating, no need to check for integer i
+      # duplications.
+      maybe_new_my_attr <- attr(x, "my_attr")
+      return(maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr))
     }
     # FIXME refactor
     res
