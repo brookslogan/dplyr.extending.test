@@ -240,7 +240,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
     # We were called along the lines of x[cols] (or x[i = cols]); standardize.
     # NextMethod() appears to have issues when we change missingness patterns,
     # so re-dispatch:
-    x[,j, ..., drop = drop]
+    return (x[,i, ..., drop = drop])
   } else {
     # We were called along the lines of the following: x[i,j], x[i,], x[,j],
     # x[,], x[j = j], or x[]; we're already standardized.
