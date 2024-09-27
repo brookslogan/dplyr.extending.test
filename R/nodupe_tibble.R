@@ -288,9 +288,9 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
         # We will have duplicates; decay & re-dispatch. This should be more
         # efficient than maybe_new_nodupe_tibble-ing the result.
         return(decay_nodupe_tibble(data)[i, j, ..., drop = drop])
+      } else if (is.character(i)) {
+        stop("character row indexing not allowed")
       } else {
-        # FIXME ensure char row indices not allowed
-        #
         # We shouldn't have duplicates, just enforce right class&attr:
         new_my_attr <- attr(x, "my_attr")
         return(ensure_new_nodupe_tibble(NextMethod(), new_my_attr))
@@ -304,7 +304,6 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
       maybe_new_my_attr <- attr(x, "my_attr")
       return(maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr))
     }
-    # FIXME refactor
     res
   }
 }
