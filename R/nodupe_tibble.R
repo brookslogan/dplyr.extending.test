@@ -71,12 +71,24 @@ maybe_decay_nodupe_tibble <- function(x) {
   }
 }
 
-#' Ensure nodupe is head class & attrs set if compatible
+#' Ensure nodupe is head class & attrs set, if compatible with nodupe
 #'
 #' @keywords internal
 maybe_new_nodupe_tibble <- function(x, my_attr = 1) {
+  if (is.data.frame(x)) {
+    maybe_decay_nodupe_tibble(ensure_new_nodupe_tibble(x, my_attr))
+  } else {
+    x
+  }
+}
+
+#' maybe_decay_nodupe_tibble if we know x is.data.frame
+#'
+#' @keywords internal
+maybe_new_nodupe_tibble0 <- function(x, my_attr = 1) {
   maybe_decay_nodupe_tibble(ensure_new_nodupe_tibble(x, my_attr))
 }
+
 
 # #' Attach nodupe_tibble class & attrs from template without checking validity
 # #'
@@ -164,7 +176,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
   #
   # FIXME it's unclear that just using template attrs is right. E.g. we may have
   # additional key columns added and should preserve them...
-  res <- maybe_new_nodupe_tibble(res, attr(template, "my_attr"))
+  res <- maybe_new_nodupe_tibble0(res, attr(template, "my_attr"))
   res
 }
 
@@ -233,32 +245,34 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
 
 #' @export
 `[.nodupe_tibble` <- function(x, i, j, ..., drop = FALSE) {
-  # Standardize to i being optional row selection, j being optional col
-  # selection:
-  i_is_col_selection <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
-  if (i_is_col_selection) {
-    # We were called along the lines of x[cols] (or x[i = cols]); standardize.
-    # NextMethod() appears to have issues when we change missingness patterns,
-    # so re-dispatch:
-    return (x[,i, ..., drop = drop])
-  } else {
-    # We were called along the lines of the following: x[i,j], x[i,], x[,j],
-    # x[,], x[j = j], or x[]; we're already standardized.
+  i_is_special <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
+  if (i_is_special) {
+    # We were called along the lines of x[cols/lmat/imat] (or x[i =
+    # cols/lmat/imat]); handle or standardize.
+    if (is.matrix(i)) {
+      maybe_new_my_attr <- attr(x, "my_attr")
+      return(maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr))
+    } else {
+      # Standardize; NextMethod() appears to have issues when we change
+      # missingness patterns, so re-dispatch:
+      return(x[,i, ..., drop = drop])
+    }
   }
+
+  # If we reached here, we were called along the lines of the following: x[i,j],
+  # x[i,], x[,j], x[,], x[j = j], or x[].
+
   # XXX perf: we could also standardize away no-op row and/or col selections to
   # try to improve performance, though identifying those could be complex and
   # might actually be slower.
   if (missing(i)) {
     if (missing(j)) {
       # i missing, j missing:
-      res <- x
+      return(x)
     } else {
       # i missing, j present:
-      res <- NextMethod()
-      if (is.data.frame(res)) {
-        maybe_new_my_attr <- attr(x, "my_attr")
-        res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
-      }
+      maybe_new_my_attr <- attr(x, "my_attr")
+      return(maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr))
     }
   } else {
     if (missing(j)) {
@@ -266,7 +280,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
       if (is.numeric(i) && anyDuplicated(i) != 0L) {
         # We will have duplicates; decay & re-dispatch. This should be more
         # efficient than maybe_decay_nodupe_tibble-ing.
-        res <- decay_nodupe_tibble(data)[i, j, ..., drop = drop]
+        return(decay_nodupe_tibble(data)[i, j, ..., drop = drop])
       } else {
         # FIXME ensure char row indices not allowed
         #
@@ -277,11 +291,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
       }
     } else {
       # i present, j present:
-      res <- NextMethod()
-      if (is.data.frame(res)) {
-        maybe_new_my_attr <- attr(x, "my_attr")
-        res <- maybe_new_nodupe_tibble(res, maybe_new_my_attr)
-      }
+      res <- maybe_new_nodupe_tibble(NextMethod(), maybe_new_my_attr)
     }
     # FIXME refactor
     res
