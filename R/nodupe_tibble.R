@@ -1,4 +1,6 @@
 
+# XXX Most testing now in keyed_tibble.  Leaving this here to track an old approach.
+
 #' Low-level constructor for nodupe_tibble; use as_nodupe_tibble or use carefully
 #'
 #' This does not validate that there are no duplicate rows in `x`; use this only
@@ -286,7 +288,7 @@ dplyr_reconstruct.nodupe_tibble <- function(data, template) {
       if (is.numeric(i) && anyDuplicated(i) != 0L) {
         # We will have duplicates; decay & re-dispatch. This should be more
         # efficient than maybe_new_nodupe_tibble-ing the result.
-        return(decay_nodupe_tibble(data)[i, j, ..., drop = drop])
+        return(decay_nodupe_tibble(x)[i, j, ..., drop = drop])
       } else if (is.character(i)) {
         stop("character row indexing not allowed")
       } else {
