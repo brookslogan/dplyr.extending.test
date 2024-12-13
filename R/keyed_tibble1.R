@@ -25,7 +25,7 @@ new_keyed_tibble1 <- function(x, key_colnames) {
 #' Ensure keyed_tibble1 is head class & attrs as given
 #'
 #' @keywords internal
-ensure_new_keyed_tibble1 <- function(x, key_colnames) {
+to_new_keyed_tibble1 <- function(x, key_colnames) {
   class_x <- class(x)
   class(x) <- class_x[class_x != "keyed_tibble1"]
   new_keyed_tibble1(x, key_colnames)
@@ -39,7 +39,7 @@ check_df_keyed_tibble1_compatible <- function(x, key_colnames) {
   # TODO proper caller_arg passing
   if (!all(key_colnames %in% names(x))) {
     "didn't have one of the `key_colnames`"
-  } else if (anyDuplicated(ensure_decayed_keyed_tibble1(x)[key_colnames]) != 0L ||
+  } else if (anyDuplicated(to_decayed_keyed_tibble1(x)[key_colnames]) != 0L ||
                nrow(x) > 1L && length(key_colnames) == 0L) {
     # TODO ^ port over new check from epiprocess
     "contained duplicates"
@@ -66,7 +66,7 @@ validate_keyed_tibble1 <- function(x) {
 #' Remove keyed_tibble1 class & attrs if present:
 #'
 #' @keywords internal
-ensure_decayed_keyed_tibble1 <- function(x, ...) {
+to_decayed_keyed_tibble1 <- function(x, ...) {
   oldclass <- class(x)
   class(x) <- oldclass[oldclass != "keyed_tibble1"]
   attr(x, "dplyr.extending.test::key_colnames") <- NULL
@@ -76,11 +76,11 @@ ensure_decayed_keyed_tibble1 <- function(x, ...) {
 #' Validate whether x obeys invariants of keyed_tibble1; if not, decay to non-keyed_tibble1:
 #'
 #' @keywords internal
-maybe_ensure_decayed_keyed_tibble1 <- function(x) {
+maybe_to_decayed_keyed_tibble1 <- function(x) {
   if (test_df_keyed_tibble1_compatible(x, attr(x, "dplyr.extending.test::key_colnames"))) {
     x
   } else {
-    ensure_decayed_keyed_tibble1(x)
+    to_decayed_keyed_tibble1(x)
   }
 }
 
@@ -89,23 +89,23 @@ maybe_ensure_decayed_keyed_tibble1 <- function(x) {
 #' @keywords internal
 maybe_new_keyed_tibble1 <- function(x, key_colnames) {
   if (is.data.frame(x)) {
-    maybe_ensure_decayed_keyed_tibble1(ensure_new_keyed_tibble1(x, key_colnames))
+    maybe_to_decayed_keyed_tibble1(to_new_keyed_tibble1(x, key_colnames))
   } else {
     x
   }
 }
 
-#' maybe_ensure_decayed_keyed_tibble1 if we know x is.data.frame
+#' maybe_to_decayed_keyed_tibble1 if we know x is.data.frame
 #'
 #' @keywords internal
 maybe_new_keyed_tibble1_0 <- function(x, key_colnames) {
-  maybe_ensure_decayed_keyed_tibble1(ensure_new_keyed_tibble1(x, key_colnames))
+  maybe_to_decayed_keyed_tibble1(to_new_keyed_tibble1(x, key_colnames))
 }
 
 
 # #' Attach keyed_tibble1 class & attrs from template without checking validity
 # #'
-# #' This is like an inverse operation of [`ensure_decayed_keyed_tibble1`]. It's similar to
+# #' This is like an inverse operation of [`to_decayed_keyed_tibble1`]. It's similar to
 # #' `dplyr_reconstruct` but it performs no validation on `data` and performs no
 # #' validation or recalculations of `key_colnames`.
 # #'
@@ -155,8 +155,8 @@ print.keyed_tibble1 <- function(x, ...) {
 # dplyr_row_slice.keyed_tibble1 <- function(data, i, ...) {
 #   if (is.numeric(i) && anyDuplicated(i) != 0L) {
 #     # We will have duplicates iff here; decay & re-dispatch. This should be more
-#     # efficient than maybe_ensure_decayed_keyed_tibble1-ing.
-#     dplyr_row_slice(ensure_decayed_keyed_tibble1(data), i, ...)
+#     # efficient than maybe_to_decayed_keyed_tibble1-ing.
+#     dplyr_row_slice(to_decayed_keyed_tibble1(data), i, ...)
 #   } else {
 #     NextMethod()
 #   }
@@ -174,7 +174,7 @@ dplyr_col_modify.keyed_tibble1 <- function(data, cols) {
   result <- NextMethod()
   if (any(vapply(cols, is.null, logical(1L)))) {
     # Removing cols may have introduced duplicates; re-verify:
-    maybe_ensure_decayed_keyed_tibble1(result)
+    maybe_to_decayed_keyed_tibble1(result)
   } else {
     result
   }
@@ -185,7 +185,7 @@ dplyr_col_modify.keyed_tibble1 <- function(data, cols) {
 dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
   res <- NextMethod()
   # # res <- new_keyed_tibble1(res, attr(template, "dplyr.extending.test::key_colnames"))
-  # res <- maybe_ensure_decayed_keyed_tibble1(res)
+  # res <- maybe_to_decayed_keyed_tibble1(res)
   #
   # FIXME it's unclear that just using template attrs is right. E.g. we may have
   # additional key columns added and should preserve them...
@@ -244,13 +244,13 @@ dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
       if (is.numeric(i) && anyDuplicated(i) != 0L) {
         # We will have duplicates; decay & re-dispatch. This should be more
         # efficient than maybe_new_keyed_tibble1-ing the result.
-        return(ensure_decayed_keyed_tibble1(x)[i, j, ..., drop = drop])
+        return(to_decayed_keyed_tibble1(x)[i, j, ..., drop = drop])
       } else if (is.character(i)) {
         stop("character row indexing not allowed")
       } else {
         # We shouldn't have duplicates, just enforce right class&attr:
         new_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
-        return(ensure_new_keyed_tibble1(NextMethod(), new_key_colnames))
+        return(to_new_keyed_tibble1(NextMethod(), new_key_colnames))
       }
     } else {
       # i present, j present:
@@ -274,7 +274,7 @@ dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
   old_names <- names(x)
   old_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
   new_key_colnames <- value[match(old_key_colnames, old_names)]
-  ensure_new_keyed_tibble1(x, new_key_colnames)
+  to_new_keyed_tibble1(x, new_key_colnames)
 }
 
 # XXX this approach to grouping, putting keyed_tibble1 in front of grouped_df,
