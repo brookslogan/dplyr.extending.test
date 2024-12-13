@@ -41,6 +41,7 @@ check_df_keyed_tibble1_compatible <- function(x, key_colnames) {
     "didn't have one of the `key_colnames`"
   } else if (anyDuplicated(ensure_decayed_keyed_tibble1(x)[key_colnames]) != 0L ||
                nrow(x) > 1L && length(key_colnames) == 0L) {
+    # TODO ^ port over new check from epiprocess
     "contained duplicates"
   } else {
     TRUE
