@@ -73,6 +73,11 @@ ensure_decayed_keyed_tibble1 <- function(x, ...) {
   x
 }
 
+# TODO clarify what the class assumptions are; e.g., below appears to be
+# assuming it's a keyed_tibble1 and would be inefficient if it was meant to
+# operate on other df's as well. But usage might also be bad right now if some
+# dplyr ops could return non-bad/good keyed_tibble1s.
+
 #' Validate whether x obeys invariants of keyed_tibble1; if not, decay to non-keyed_tibble1:
 #'
 #' @keywords internal
