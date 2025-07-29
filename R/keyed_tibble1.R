@@ -170,6 +170,11 @@ print.keyed_tibble1 <- function(x, ...) {
 #' @importFrom dplyr dplyr_row_slice
 #' @export
 dplyr_row_slice.keyed_tibble1 <- function(data, i, ...) {
+  # XXX it seemed like vec_slice might have been faster than `[` for
+  # tibbles; consider benchmarking this vs. an alternate approach
+  # based on NextMethod() or vec_slice + doing the duplicate
+  # checking... and whether there's a way of implementing this without
+  # lots of key checking all over several methods.
   data[i,]
 }
 
