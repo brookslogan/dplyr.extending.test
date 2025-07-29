@@ -301,3 +301,6 @@ ungroup.keyed_tibble1 <- function(x, ...) {
 # TODO rowwise?
 
 # TODO check on [<-, [[<-, $<- w/ grouping
+
+# FIXME this does not actually/currently preserve the class when doing
+# group_by mutate.
