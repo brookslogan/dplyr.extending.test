@@ -308,4 +308,5 @@ ungroup.keyed_tibble1 <- function(x, ...) {
 # TODO check on [<-, [[<-, $<- w/ grouping
 
 # FIXME this does not actually/currently preserve the class when doing
-# group_by mutate.
+# group_by mutate.  Seems like reclassing needs to be done in
+# dplyr_col_modify and `[` (latter from `dplyr:::dplyr_col_select`.)
