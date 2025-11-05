@@ -182,11 +182,12 @@ dplyr_row_slice.keyed_tibble1 <- function(data, i, ...) {
 #' @export
 dplyr_col_modify.keyed_tibble1 <- function(data, cols) {
   result <- NextMethod()
+  # If we were grouped, we've lost our class.  Make sure that we reclass if needed.
   if (any(vapply(cols, is.null, logical(1L)))) {
     # Removing cols may have introduced duplicates; re-verify:
-    maybe_ensure_decayed_keyed_tibble1(result)
+    maybe_new_keyed_tibble1_0(result)
   } else {
-    result
+    new_keyed_tibble1(result, attr(data, "dplyr.extending.test::key_colnames"))
   }
 }
 
