@@ -311,3 +311,12 @@ ungroup.keyed_tibble1 <- function(x, ...) {
 # FIXME this does not actually/currently preserve the class when doing
 # group_by mutate.  Seems like reclassing needs to be done in
 # dplyr_col_modify and `[` (latter from `dplyr:::dplyr_col_select`.)
+# * Fixing grouped dplyr_col_modify alone seems like it has fixed.
+#   Though inside `[` there might be an overly expensive
+#   reconstruction done.
+# * For group manipulation verbs, might want to investigate this type of approach with the grouped_df metadata?:
+#
+# new_keyed_tibble1(tibble(g = c(1,1,1,2,2), t = c(1,2,3,2,3)), c("g", "t")) %>%
+# group_by(g) %>%
+# `attr<-`("groups", attr(., "groups") %>% new_keyed_tibble1(c("g", "t"))) %>%
+# summarize(n = n())
