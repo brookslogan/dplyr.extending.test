@@ -295,7 +295,11 @@ dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
 #' @importFrom dplyr group_by
 #' @export
 group_by.keyed_tibble1 <- function(.data, ...) {
-  new_keyed_tibble1(NextMethod(), attr(.data, "dplyr.extending.test::key_colnames"))
+  result <- new_keyed_tibble1(NextMethod(), attr(.data, "dplyr.extending.test::key_colnames"))
+  groups <- attr(result, "groups")
+  groups <- new_keyed_tibble1(groups, vctrs::vec_set_intersect(names(groups), attr(groups, "dplyr.extending.test::key_colnames")))
+  attr(result, "groups") <- groups
+  result
 }
 
 #' @importFrom dplyr ungroup
