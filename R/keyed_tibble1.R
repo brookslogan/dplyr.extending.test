@@ -294,9 +294,11 @@ group_by.keyed_tibble1 <- function(.data, ...) {
   attr(result, "groups") <- new_keyed_tibble1(attr(result, "groups"), dplyr::group_vars(result))
   # XXX but need/want way to gracefully/efficiently form non-keep group dfs with restricted key
   #
-  # TODO also sanity-check various group_modify situations
+  # TODO also sanity-check various group_modify & reframe situations.  setdiff key cols with keep=FALSE (except we can skip verification).  should group key col (or intersection of group keys and old keys?) be saved as attr when keep=FALSE in case rebinding related results together?  etc.
   result
 }
+
+# TODO rowwise
 
 #' @importFrom dplyr ungroup
 #' @export
@@ -304,19 +306,4 @@ ungroup.keyed_tibble1 <- function(x, ...) {
   new_keyed_tibble1(NextMethod(), attr(x, "dplyr.extending.test::key_colnames"))
 }
 
-# TODO rowwise?
-
 # TODO check on [<-, [[<-, $<- w/ grouping
-
-# FIXME this does not actually/currently preserve the class when doing
-# group_by mutate.  Seems like reclassing needs to be done in
-# dplyr_col_modify and `[` (latter from `dplyr:::dplyr_col_select`.)
-# * Fixing grouped dplyr_col_modify alone seems like it has fixed.
-#   Though inside `[` there might be an overly expensive
-#   reconstruction done.
-# * For group manipulation verbs, might want to investigate this type of approach with the grouped_df metadata?:
-#
-# new_keyed_tibble1(tibble(g = c(1,1,1,2,2), t = c(1,2,3,2,3)), c("g", "t")) %>%
-# group_by(g) %>%
-# `attr<-`("groups", attr(., "groups") %>% new_keyed_tibble1(c("g", "t"))) %>%
-# summarize(n = n())
