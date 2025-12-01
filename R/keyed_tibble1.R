@@ -70,6 +70,9 @@ ensure_decayed_keyed_tibble1 <- function(x, ...) {
   oldclass <- class(x)
   class(x) <- oldclass[oldclass != "keyed_tibble1"]
   attr(x, "dplyr.extending.test::key_colnames") <- NULL
+  # if (inherits(x, "grouped_df")) {
+  #   attr(x, "groups") <- ensure_decayed_keyed_tibble1(attr(x, "groups"))
+  # }
   x
 }
 
@@ -182,8 +185,17 @@ dplyr_row_slice.keyed_tibble1 <- function(data, i, ...) {
 #' @export
 dplyr_col_modify.keyed_tibble1 <- function(data, cols) {
   result <- NextMethod()
+  data_key_colnames <- attr(data, "dplyr.extending.test::key_colnames")
+  if (any(names(cols) %in% data_key_colnames)) {
+    result_key_colnames <- vctrs::vec_set_intersect(data_key_colnames, names(result))
+    result <- maybe_new_keyed_tibble1_0(result, result_key_colnames)
+    # FIXME if we end up a unkeyed grouped df, we need to make sure
+    # that groups attr is de-keyed; awkward in current scheme because
+    # we have a sort of half-keyed NextMethod result.
+  } else {
+    result <- new_keyed_tibble1(result, data_key_colnames)
+  }
   result
-  # FIXME if key cols are being modified or removed, we need to re-verify, plus update metadata
 }
 
 #' @importFrom dplyr dplyr_reconstruct
@@ -292,6 +304,9 @@ dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
 group_by.keyed_tibble1 <- function(.data, ...) {
   result <- new_keyed_tibble1(NextMethod(), attr(.data, "dplyr.extending.test::key_colnames"))
   attr(result, "groups") <- new_keyed_tibble1(attr(result, "groups"), dplyr::group_vars(result))
+  # FIXME this attr munging probably belongs as conditional attr
+  # munging in new_keyed_tibble1.  Or use the grouped_keyed, grouped, keyed class vector approach.
+  #
   # XXX but need/want way to gracefully/efficiently form non-keep group dfs with restricted key
   #
   # TODO also sanity-check various group_modify & reframe situations.  setdiff key cols with keep=FALSE (except we can skip verification).  should group key col (or intersection of group keys and old keys?) be saved as attr when keep=FALSE in case rebinding related results together?  etc.
