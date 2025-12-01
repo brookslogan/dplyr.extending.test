@@ -182,13 +182,8 @@ dplyr_row_slice.keyed_tibble1 <- function(data, i, ...) {
 #' @export
 dplyr_col_modify.keyed_tibble1 <- function(data, cols) {
   result <- NextMethod()
-  # If we were grouped, we've lost our class.  Make sure that we reclass if needed.
-  if (any(vapply(cols, is.null, logical(1L)))) {
-    # Removing cols may have introduced duplicates; re-verify:
-    maybe_new_keyed_tibble1_0(result)
-  } else {
-    new_keyed_tibble1(result, attr(data, "dplyr.extending.test::key_colnames"))
-  }
+  result
+  # FIXME if key cols are being modified or removed, we need to re-verify, plus update metadata
 }
 
 #' @importFrom dplyr dplyr_reconstruct
@@ -296,9 +291,10 @@ dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
 #' @export
 group_by.keyed_tibble1 <- function(.data, ...) {
   result <- new_keyed_tibble1(NextMethod(), attr(.data, "dplyr.extending.test::key_colnames"))
-  groups <- attr(result, "groups")
-  groups <- new_keyed_tibble1(groups, vctrs::vec_set_intersect(names(groups), attr(groups, "dplyr.extending.test::key_colnames")))
-  attr(result, "groups") <- groups
+  attr(result, "groups") <- new_keyed_tibble1(attr(result, "groups"), dplyr::group_vars(result))
+  # XXX but need/want way to gracefully/efficiently form non-keep group dfs with restricted key
+  #
+  # TODO also sanity-check various group_modify situations
   result
 }
 
