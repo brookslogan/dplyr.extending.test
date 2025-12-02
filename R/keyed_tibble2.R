@@ -12,16 +12,16 @@
 #' @export
 new_keyed_df2 <- function(df, df_ukey_colnames) {
   if (inherits(df, "keyed_df2")) {
-    cli_abort("`df` must not already be a keyed_df2")
+    cli::cli_abort("`df` must not already be a keyed_df2")
   }
   if (!tibble::is_tibble(df)) {
-    cli_abort("`df` must be a tibble")
+    cli::cli_abort("`df` must be a tibble")
   }
   if (!inherits(df_ukey_colnames, "character")) {
-    cli_abort("df_ukey_colnames must be character vector")
+    cli::cli_abort("df_ukey_colnames must be character vector")
   }
   class(df) <- c("keyed_df2", class(df))
-  attr(df, "dplyr.extending.test::df_ukey_colnames") <- df_ukey_colnames
+  attr(df, "dplyr.extending.test::ukey_colnames") <- df_ukey_colnames
   if (dplyr::is_grouped_df(df)) {
     attr(df, "groups") <- new_keyed_df2(attr(df, "groups"), dplyr::group_vars(df))
   }
@@ -34,7 +34,7 @@ new_keyed_df2 <- function(df, df_ukey_colnames) {
 #' @keywords internal
 nominal_kdf2_decay <- function(nominal_kdf2) {
   if (!inherits(nominal_kdf2, "keyed_df2")) {
-    cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
+    cli::cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
   }
   result <- nominal_kdf2
   if (is_grouped_df(result)) {
@@ -69,19 +69,19 @@ is_keyed_df2 <- function(obj) {
 #' @export
 validate_keyed_df2 <- function(nominal_kdf2) {
   if (!inherits(nominal_kdf2, "keyed_df2")) {
-    cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
+    cli::cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
   }
   nominal_kdf2_class <- class(nominal_kdf2_class)
   if (sum(nominal_kdf2_class  == "keyed_df2") > 1L) {
-    cli_abort('`class(nominal_kdf2)` contained multiple appearances of "keyed_df2"')
+    cli::cli_abort('`class(nominal_kdf2)` contained multiple appearances of "keyed_df2"')
   }
   if (is_grouped_df(nominal_kdf2)) {
     if (vctrs::vec_match("keyed_df2", nominal_kdf2_class) > vctrs::vec_match("grouped_df", nominal_kdf2_class)) {
-      cli_abort('`class(nominal_kdf2)` had "keyed_df2" appear after "grouped_df"')
+      cli::cli_abort('`class(nominal_kdf2)` had "keyed_df2" appear after "grouped_df"')
     }
     groups <- attr(nominal_kdf2, "groups")
     if (!is_keyed_df2(groups)) {
-      cli_abort("nominal_kdf2 was grouped, but its groups were not a (nominal) kdf2")
+      cli::cli_abort("nominal_kdf2 was grouped, but its groups were not a (nominal) kdf2")
     }
     validate_keyed_df2(groups) # TODO caller_arg passing really matters here.  though this check seems unlikely to fail
   }
@@ -96,7 +96,7 @@ validate_keyed_df2 <- function(nominal_kdf2) {
 # #' @keywords internal
 # nominal_kdf2_parent <- function(nominal_kdf2) {
 #   if (!inherits(nominal_kdf2, "keyed_df2")) {
-#     cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
+#     cli::cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
 #   }
 #   result <- nominal_kdf2
 #   if (is_grouped_df(result)) {
@@ -140,7 +140,7 @@ validate_keyed_df2 <- function(nominal_kdf2) {
 #' @keywords internal
 nominal_kdf2_strip_subclasses <- function(nominal_kdf2) {
   if (!inherits(nominal_kdf2, "keyed_df2")) {
-    cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
+    cli::cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
   }
   result <- nominal_kdf2
   old_class <- class(result)
@@ -164,7 +164,7 @@ dplyr_row_slice.keyed_df2 <- function(data, i, ...) {
 #' @export
 dplyr_col_modify.keyed_df2 <- function(data, cols) {
   # result <- NextMethod()
-  # data_key_colnames <- attr(data, "dplyr.extending.test::key_colnames")
+  # data_key_colnames <- attr(data, "dplyr.extending.test::ukey_colnames")
   # if (any(names(cols) %in% data_key_colnames)) {
   #   result_key_colnames <- vctrs::vec_set_intersect(data_key_colnames, names(result))
   #   result <- maybe_new_keyed_tibble1_0(result, result_key_colnames)
@@ -219,7 +219,7 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
       # i missing, j missing ("everything" selection):
       #
       # Still delegate in case parent class assigns special behaviors:
-      old_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
+      old_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
       # TODO refactor to common if possible?:
       parent_result <- NextMethod()
       result <- new_keyed_df2(parent_result, old_key_colnames)
@@ -230,7 +230,7 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
       #
       # Col selection might mess up nodupe invariant or yield non-data.frame, so
       # validate.
-      old_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
+      old_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
       parent_result <- NextMethod()
       # TODO refactor to helper?:
       if (!is.data.frame(parent_result)) {
@@ -253,7 +253,7 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
         stop("character row indexing not allowed")
       } else {
         # We shouldn't have duplicates, just enforce right class&attr:
-        new_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
+        new_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
         return(ensure_new_keyed_df2(NextMethod(), new_key_colnames))
       }
     } else {
@@ -262,7 +262,7 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
       # Col selection might mess up nodupe invariant or yield non-data.frame, so
       # validate. Since we're already validating, no need to check for integer i
       # duplications.
-      old_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
+      old_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
       result <- NextMethod()
       maybe_new_key_colnames <- old_key_colnames[old_key_colnames %in% names(result)]
       result <- maybe_new_keyed_df2(result, maybe_new_key_colnames)
@@ -314,4 +314,17 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
 #' @export
 dplyr_row_slice.keyed_df2 <- function(data, i, ...) {
   data[i,]
+}
+
+
+#' @export
+print.keyed_df2 <- function(x, ...) {
+  # TODO pillar stuff, cli toString alternative
+  print(glue::glue('# keyed_df2[{toString(attr(x, "dplyr.extending.test::ukey_colnames"))}] of:\n'))
+  NextMethod()
+}
+
+#' @export
+group_by.keyed_df2 <- function(.data, ...) {
+  new_keyed_df2(NextMethod(), attr(.data, "dplyr.extending.test::ukey_colnames"))
 }
