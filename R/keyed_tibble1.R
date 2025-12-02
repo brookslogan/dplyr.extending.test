@@ -327,3 +327,8 @@ ungroup.keyed_tibble1 <- function(x, ...) {
 }
 
 # TODO check on [<-, [[<-, $<- w/ grouping
+
+# TODO generating errors
+#
+# tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_tibble1(c("k", "t")) %>% mutate(cond = v > 3) %>% group_by(cond) %>% summarize(n())
+# tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_tibble1(c("k", "t")) %>% group_by(v > 3) %>% summarize(n())
