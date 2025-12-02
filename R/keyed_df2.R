@@ -154,8 +154,8 @@ df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
 #' Used to prevent invalid results, hard errors, and redundant
 #' processing from re-dispatching to subclasses when calling S3
 #' methods from within an S3 method implementation. (We want
-#' SML/Haskell/Rust-style parametric polymorphism / parent dependency
-#' injection, not Java/Python-style virtual/dynamic dispatch.)
+#' SML/Haskell/Rust/C++-template-style parametric polymorphism / parent dependency
+#' injection, not Java-style inheritance.)
 #'
 #' ```
 #' specific_op1.keyed_df2 <- function(x, args1) {
@@ -181,6 +181,9 @@ nominal_kdf2_strip_subclasses <- function(nominal_kdf2) {
   class(result) <- old_class[match("keyed_df2", old_class):length(old_class)]
   result
 }
+
+# FIXME TODO should NextMethod() even been ruled out?  not returning
+# decayed things, which could be efficiency hack or an issue
 
 # TODO other converters, helpers
 
