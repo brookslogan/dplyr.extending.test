@@ -179,6 +179,10 @@ dplyr_row_slice.keyed_tibble1 <- function(data, i, ...) {
   # checking... and whether there's a way of implementing this without
   # lots of key checking all over several methods.
   data[i,]
+  # XXX but this will involve extra overhead or bugs if we have
+  # subclasses as well... we're dispatching to subclass `[` and still
+  # have subclass potentially expecting to fix up dplyr_row_slice
+  # NextMethod() delegated to us.
 }
 
 #' @importFrom dplyr dplyr_col_modify
@@ -223,6 +227,7 @@ dplyr_reconstruct.keyed_tibble1 <- function(data, template) {
       result <- NextMethod()
       if (is.data.frame(result)) {
         stop("internal error: expected matrix indexing to yield a non-data.frame")
+        # XXX could actually happen with tibble cols
       }
       return(result)
     } else {
