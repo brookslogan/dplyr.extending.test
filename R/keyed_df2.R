@@ -14,9 +14,6 @@ new_keyed_df2 <- function(df, df_ukey_colnames) {
   if (inherits(df, "keyed_df2")) {
     cli::cli_abort("`df` must not already be a keyed_df2")
   }
-  if (!tibble::is_tibble(df)) {
-    cli::cli_abort("`df` must be a tibble")
-  }
   if (!inherits(df_ukey_colnames, "character")) {
     cli::cli_abort("df_ukey_colnames must be character vector")
   }
@@ -53,17 +50,12 @@ df_check_kdf2_compatible <- function(x, ukey_colnames) {
   # TODO proper caller_arg passing
   if (!all(ukey_colnames %in% names(x))) {
     "didn't have one of the `ukey_colnames`"
-  } else if (vctrs::vec_duplicate_any(nominal_kdf2_decay(x)[ukey_colnames]) != 0L ||
+  } else if (vctrs::vec_duplicate_any(nominal_kdf2_decay(x)[ukey_colnames]) ||
                nrow(x) > 1L && length(ukey_colnames) == 0L) {
     "contained duplicates"
   } else {
     TRUE
   }
-}
-
-#' @export
-is_keyed_df2 <- function(obj) {
-  inherits(obj, "keyed_df2")
 }
 
 #' @export
@@ -90,6 +82,48 @@ validate_keyed_df2 <- function(nominal_kdf2) {
   # TODO proper caller_arg passing
   checkmate::assert(df_check_kdf2_compatible(x, attr(x, "dplyr.extending.test::ukey_colnames")))
 }
+
+#' @export
+is_keyed_df2 <- function(obj) {
+  inherits(obj, "keyed_df2")
+}
+
+# TODO as_keyed_df2 function
+
+# TODO nix "nominal_" for functions where uses all assume true
+
+# TODO see if can nix "nominal_" altogether by maybe decaying beforehand
+
+
+df_ensure_not_kdf2 <- function(df) {
+  # TODO naming scheme... df or df0 or <fnname>0 to indicate not checked
+  if (inherits(df, "keyed_df2")) {
+    nominal_kdf2_decay(df)
+  } else {
+    df
+  }
+}
+
+df_ensure_nominal_kdf2 <- function(df, df_ukey_colnames) {
+  df <- df_ensure_not_kdf2(df)
+  new_keyed_df2(df, ukey_colnames)
+}
+
+df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
+  if (inherits(df, "keyed_df2") && all(attr(df, "dplyr.extending.test::ukey_colnames") %in% ukey_colnames)) {
+    attr(df, "dplyr.extending.test::ukey_colnames") <- ukey_colnames
+    df
+  } else {
+    df <- df_ensure_not_kdf2(df)
+    if (isTRUE(df_check_kdf2_compatible(df, ukey_colnames))) {
+      new_keyed_df2(df, ukey_colnames)
+    } else {
+      df
+    }
+  }
+}
+
+# FIXME errors with tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_df2(c("k", "t")) %>% .[1]... referencing wrong line numbers...
 
 # #' Convert a nominal kdf2 (or subclass) into its parent class
 # #'
@@ -187,7 +221,11 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
 
 #' @export
 `names<-.keyed_df2` <- function(x, value) {
-  stop("TODO")
+  result <- NextMethod()
+  old_names <- names(x)
+  old_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
+  new_key_colnames <- value[match(old_key_colnames, old_names)]
+  df_ensure_nominal_kdf2(x, new_key_colnames) # XXX vs. ensure
 }
 
 #' @export
@@ -222,7 +260,7 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
       old_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
       # TODO refactor to common if possible?:
       parent_result <- NextMethod()
-      result <- new_keyed_df2(parent_result, old_key_colnames)
+      result <- df_ensure_nominal_kdf2(parent_result, old_key_colnames)
       # TODO refactor to common or...
       return(result)
     } else {
@@ -236,25 +274,28 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
       if (!is.data.frame(parent_result)) {
         result <- parent_result
       } else {
-        maybe_new_key_colnames <- old_key_colnames[old_key_colnames %in% names(result)]
-        # FIXME TODO conditional validation here, plus finish rewriting the rest.
-        result <- maybe_new_keyed_tibble2(result, maybe_new_key_colnames)
+        # TODO consider combining with i present, j present case
+        maybe_new_key_colnames <- old_key_colnames[old_key_colnames %in% names(parent_result)]
+        result <- df_if_kdf2_compatible_as_kdf2(parent_result, maybe_new_key_colnames)
       }
       return(result)
     }
   } else {
     if (missing(j)) {
       # i present, j missing:
-      if (is.numeric(i) && anyDuplicated(i) != 0L) {
+      if (is.numeric(i) && vctrs::vec_duplicate_any(i)) {
         # We will have duplicates; decay & re-dispatch. This should be more
         # efficient than maybe_new_keyed_df2-ing the result.
-        return(ensure_decayed_keyed_df2(x)[i, j, ..., drop = drop])
+        return(nominal_kdf2_decay(x)[i, j, ..., drop = drop])
       } else if (is.character(i)) {
         stop("character row indexing not allowed")
-      } else {
+      } else { # i logical?
         # We shouldn't have duplicates, just enforce right class&attr:
+        #
+        # XXX what about NAs in i?
         new_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
-        return(ensure_new_keyed_df2(NextMethod(), new_key_colnames))
+        return(df_ensure_nominal_kdf2(NextMethod(), new_key_colnames))
+
       }
     } else {
       # i present, j present:
@@ -263,9 +304,14 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
       # validate. Since we're already validating, no need to check for integer i
       # duplications.
       old_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
-      result <- NextMethod()
-      maybe_new_key_colnames <- old_key_colnames[old_key_colnames %in% names(result)]
-      result <- maybe_new_keyed_df2(result, maybe_new_key_colnames)
+      parent_result <- NextMethod()
+      if (!is.data.frame(parent_result)) {
+        return(parent_result)
+      }
+      maybe_new_key_colnames <- old_key_colnames[old_key_colnames %in% names(parent_result)]
+      # TODO alternatively, consider checking i for duplicates plus
+      # something like whether it selects across excluded-old-ukey-col values
+      result <- df_if_kdf2_compatible_as_kdf2(parent_result, maybe_new_key_colnames)
       return(result)
     }
   }
@@ -302,6 +348,10 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
 # obj_if_bad_kdf2_decay
 
 # (decay vs. to_{not,non}_[nominal_]kdf2)
+
+# VS
+
+# if-then
 
 # VS
 
