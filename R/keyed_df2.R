@@ -50,7 +50,7 @@ df_check_kdf2_compatible <- function(x, ukey_colnames) {
   # TODO proper caller_arg passing
   if (!all(ukey_colnames %in% names(x))) {
     "didn't have one of the `ukey_colnames`"
-  } else if (vctrs::vec_duplicate_any(nominal_kdf2_decay(x)[ukey_colnames]) ||
+  } else if (vctrs::vec_duplicate_any(df_ensure_not_kdf2(x)[ukey_colnames]) ||
                nrow(x) > 1L && length(ukey_colnames) == 0L) {
     "contained duplicates"
   } else {
