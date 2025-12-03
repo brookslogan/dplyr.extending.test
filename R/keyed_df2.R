@@ -152,8 +152,22 @@ df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
 #' Used to prevent invalid results, hard errors, and redundant
 #' processing from re-dispatching to subclasses when calling S3
 #' methods from within an S3 method implementation. (We want
-#' SML/Haskell/Rust/C++-template-style parametric polymorphism / parent dependency
-#' injection, not Java-style inheritance.)
+#' SML/Haskell/Rust/C++-template-style/decorator-style parametric
+#' polymorphism / parent dependency injection, not object inheritance.
+#' But it seems we are bound by the structure of inheritance in order
+#' to use dplyr_extending.)
+
+# XXX unless we are not... is there a way to have (kdf1, tbl/df) class
+# forward like a decorator?  Could maybe have df structure and change
+# to wrapped class & then forward, or non-df structure and lie about
+# class (seems very risky), or just actually wrap with tbl/df-type
+# columns.  Though first with wrapped/decorated classes stored as
+# parent classes rather than a hidden attr is just essentially current
+# approach but saying to always strip subclasses rather than trying to
+# use NextMethod() ever.  May or may not be better for other ops we
+# don't cover.  Grouping seems like it may determine feasibility for
+# alternative approaches.
+
 #'
 #' ```
 #' specific_op1.keyed_df2 <- function(x, args1) {
