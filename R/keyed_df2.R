@@ -97,13 +97,23 @@ is_keyed_df2 <- function(obj) {
 
 df_ensure_not_kdf2 <- function(df) {
   # TODO naming scheme... df or df0 or <fnname>0 to indicate not checked
-  if (inherits(df, "keyed_df2")) {
-    nominal_kdf2_decay(df)
-  } else {
-    df
+  #
+  # TODO name for this potentially-broken-kdf2?
+  # if (inherits(df, "keyed_df2")) {
+  #   nominal_kdf2_decay(df)
+  # } else {
+  #   df
+  # }
+  if (is_grouped_df(df)) {
+    attr(df, "groups") <- df_ensure_not_kdf2(attr(df, "groups"))
   }
+  attr(df, "dplyr.extending.test::ukey_colnames") <- NULL
+  class(df) <- vctrs::vec_set_difference(class(df), "keyed_df2")
+  df
 }
 
+# XXX maybe change this back to "new_" or something else instead of
+# "nominal_", since it has more structure than a nominal
 df_ensure_nominal_kdf2 <- function(df, df_ukey_colnames) {
   df <- df_ensure_not_kdf2(df)
   new_keyed_df2(df, df_ukey_colnames)
@@ -185,6 +195,7 @@ df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
 #'
 #' @keywords internal
 nominal_kdf2_strip_subclasses <- function(nominal_kdf2) {
+  # FIXME note only nominally stripping subclasses; attrs may remain.
   if (!inherits(nominal_kdf2, "keyed_df2")) {
     cli::cli_abort("`nominal_kdf2` was not marked a keyed_df2 to begin with")
   }
@@ -399,10 +410,12 @@ group_by.keyed_df2 <- function(.data, ...) {
 
 # TODO group_split... .keep=FALSE col selection happens too early
 
-# FIXME tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_df2(c("k", "t")) %>% group_by(k) %>% mutate(t = t + 1)
+# TODO group_split... .keep=FALSE col selection happens too early
 
 # TODO back keyed_df2 by a role_df to manage roles?
 
 # TODO a chop_extract method?
 
 # TODO S3 method principles... if UseMethod() used then maybe we should always consider being returned a nominal, potentially-bad kdf2 as a possibility, and always use <something>_ensure_kdf2 or ...if_kdf2_compatible...
+
+# FIXME todo try actual decorator/wrapper approach
