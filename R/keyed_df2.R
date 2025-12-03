@@ -11,12 +11,15 @@
 #'
 #' @export
 new_keyed_df2 <- function(df, df_ukey_colnames) {
+  # TODO validate is actually df
   if (inherits(df, "keyed_df2")) {
     cli::cli_abort("`df` must not already be a keyed_df2")
   }
+  # TODO is.character?
   if (!inherits(df_ukey_colnames, "character")) {
     cli::cli_abort("`df_ukey_colnames` must be a character vector")
   }
+  # TODO subset verification
   class(df) <- c("keyed_df2", class(df))
   attr(df, "dplyr.extending.test::ukey_colnames") <- df_ukey_colnames
   if (dplyr::is_grouped_df(df)) {
