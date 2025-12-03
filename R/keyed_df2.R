@@ -384,3 +384,5 @@ group_by.keyed_df2 <- function(.data, ...) {
 }
 
 # TODO group_split... .keep=FALSE col selection happens too early
+
+# FIXME tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_df2(c("k", "t")) %>% group_by(k) %>% mutate(t = t + 1)
