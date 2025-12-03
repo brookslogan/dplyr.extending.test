@@ -405,10 +405,35 @@ print.keyed_df2 <- function(x, ...) {
 
 #' @export
 group_by.keyed_df2 <- function(.data, ...) {
-  new_keyed_df2(NextMethod(), attr(.data, "dplyr.extending.test::ukey_colnames"))
+  df_ensure_nominal_kdf2(NextMethod(), attr(.data, "dplyr.extending.test::ukey_colnames"))
 }
 
-# TODO group_split... .keep=FALSE col selection happens too early
+#' @export
+ungroup.keyed_df2 <- function(x, ...) {
+  df_ensure_nominal_kdf2(NextMethod(), attr(x, "dplyr.extending.test::ukey_colnames"))
+}
+
+#' @export
+group_split.keyed_df2 <- function(.tbl, ..., .keep = TRUE) {
+  is <- group_rows(.tbl)
+  if(.keep) {
+    j <- seq_along(.tbl)
+  } else {
+    j <- which(! names(.tbl) %in% group_vars(.tbl))
+  }
+  chop_extract(ungroup(.tbl), is, j)
+}
+
+chop_extract <- function(x, is, j) {
+  UseMethod("chop_extract")
+}
+
+#' @export
+chop_extract.default <- function(x, is, j) {
+  lapply(is, function(i) {
+    x[i, j]
+  })
+}
 
 # TODO group_split... .keep=FALSE col selection happens too early
 
