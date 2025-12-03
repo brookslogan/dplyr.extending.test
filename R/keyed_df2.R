@@ -386,3 +386,9 @@ group_by.keyed_df2 <- function(.data, ...) {
 # TODO group_split... .keep=FALSE col selection happens too early
 
 # FIXME tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_df2(c("k", "t")) %>% group_by(k) %>% mutate(t = t + 1)
+
+# TODO back keyed_df2 by a role_df to manage roles?
+
+# TODO a chop_extract method?
+
+# TODO S3 method principles... if UseMethod() used then maybe we should always consider being returned a nominal, potentially-bad kdf2 as a possibility, and always use <something>_ensure_kdf2 or ...if_kdf2_compatible...
