@@ -15,7 +15,7 @@ new_keyed_df2 <- function(df, df_ukey_colnames) {
     cli::cli_abort("`df` must not already be a keyed_df2")
   }
   if (!inherits(df_ukey_colnames, "character")) {
-    cli::cli_abort("df_ukey_colnames must be character vector")
+    cli::cli_abort("`df_ukey_colnames` must be a character vector")
   }
   class(df) <- c("keyed_df2", class(df))
   attr(df, "dplyr.extending.test::ukey_colnames") <- df_ukey_colnames
@@ -106,7 +106,7 @@ df_ensure_not_kdf2 <- function(df) {
 
 df_ensure_nominal_kdf2 <- function(df, df_ukey_colnames) {
   df <- df_ensure_not_kdf2(df)
-  new_keyed_df2(df, ukey_colnames)
+  new_keyed_df2(df, df_ukey_colnames)
 }
 
 df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
@@ -122,8 +122,6 @@ df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
     }
   }
 }
-
-# FIXME errors with tibble(k = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5) %>% new_keyed_df2(c("k", "t")) %>% .[1]... referencing wrong line numbers...
 
 # #' Convert a nominal kdf2 (or subclass) into its parent class
 # #'
@@ -187,7 +185,6 @@ nominal_kdf2_strip_subclasses <- function(nominal_kdf2) {
 
 # TODO other converters, helpers
 
-
 #' @export
 dplyr_row_slice.keyed_df2 <- function(data, i, ...) {
   # if (vctrs::vec_duplicate_any(i)) {
@@ -219,16 +216,16 @@ dplyr_col_modify.keyed_df2 <- function(data, cols) {
 
 #' @export
 dplyr_reconstruct.keyed_df2 <- function(data, template) {
-  stop("TODO")
+  df_if_kdf2_compatible_as_kdf2(NextMethod(), attr(template, "dplyr.extending.test::ukey_colnames"))
 }
 
 #' @export
 `names<-.keyed_df2` <- function(x, value) {
   result <- NextMethod()
   old_names <- names(x)
-  old_key_colnames <- attr(x, "dplyr.extending.test::key_colnames")
+  old_key_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
   new_key_colnames <- value[match(old_key_colnames, old_names)]
-  df_ensure_nominal_kdf2(x, new_key_colnames) # XXX vs. ensure
+  df_ensure_nominal_kdf2(x, new_key_colnames)
 }
 
 #' @export
@@ -321,8 +318,12 @@ dplyr_reconstruct.keyed_df2 <- function(data, template) {
 }
 
 #' @export
-`[<-.keyed_df2` <- function(x, i, j, ..., drop = FALSE) {
-  stop("TODO")
+`[<-.keyed_df2` <- function(x, i, j, ..., value) {
+  result <- NextMethod()
+  old_ukey_colnames <- attr(x, "dplyr.extending.test::ukey_colnames")
+  maybe_new_ukey_names <- vctrs::vec_set_intersect(names(result), old_ukey_colnames)
+  result <- df_if_kdf2_compatible_as_kdf2(result, maybe_new_ukey_names)
+  result
 }
 
 # TODO other base methods
@@ -381,3 +382,5 @@ print.keyed_df2 <- function(x, ...) {
 group_by.keyed_df2 <- function(.data, ...) {
   new_keyed_df2(NextMethod(), attr(.data, "dplyr.extending.test::ukey_colnames"))
 }
+
+# TODO group_split... .keep=FALSE col selection happens too early
