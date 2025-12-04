@@ -437,17 +437,6 @@ group_split.keyed_df2 <- function(.tbl, ..., .keep = TRUE) {
   chop_extract(ungroup(.tbl), is, j)
 }
 
-chop_extract <- function(x, is, j) {
-  UseMethod("chop_extract")
-}
-
-#' @export
-chop_extract.default <- function(x, is, j) {
-  lapply(is, function(i) {
-    x[i, j]
-  })
-}
-
 # TODO group_split... .keep=FALSE col selection happens too early
 
 # TODO back keyed_df2 by a role_df to manage roles?
