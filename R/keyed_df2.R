@@ -23,6 +23,7 @@ new_keyed_df2 <- function(df, df_ukey_colnames) {
   class(df) <- c("keyed_df2", class(df))
   attr(df, "dplyr.extending.test::ukey_colnames") <- df_ukey_colnames
   if (dplyr::is_grouped_df(df)) {
+    # XXX vs. on-demand wrapping on group_data?
     attr(df, "groups") <- new_keyed_df2(attr(df, "groups"), dplyr::group_vars(df))
   }
   # TODO rowwise
