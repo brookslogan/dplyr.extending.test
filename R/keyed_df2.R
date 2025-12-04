@@ -182,6 +182,15 @@ df_if_kdf2_compatible_as_kdf2 <- function(df, ukey_colnames) {
 # don't cover.  Grouping seems like it may determine feasibility for
 # alternative approaches.
 
+# Also, we can't strip subclass attrs here, so we're going to be
+# producing sort of malformed results... subclass wrapping impls might
+# not detect and clean up for us; should we re-attach subclasses
+# afterward to help detection?
+
+# Another decorator approach would be to hide intermediate parents
+# classes & attrs in own attr.  Accessing inner decorator attrs would
+# require delegation chain though.
+
 #'
 #' ```
 #' specific_op1.keyed_df2 <- function(x, args1) {
