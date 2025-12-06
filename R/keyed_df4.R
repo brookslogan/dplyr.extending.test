@@ -43,6 +43,14 @@ nominal_kdf4_decay <- function(nominal_kdf4) {
   result
 }
 
+df_ensure_not_kdf4 <- function(df) {
+  if (inherits(df, "keyed_df4")) {
+    nominal_kdf4_decay(df)
+  } else {
+    df
+  }
+}
+
 #' @export
 ukey_colnames.keyed_df4 <- function(x) {
   attr(x, "dplyr.extending.test::ukey_colnames")
@@ -106,6 +114,13 @@ df_as_keyed_df4_if_compatible <- function(df, ukey_colnames) {
 }
 
 #' @export
+print.keyed_df4 <- function(x, ...) {
+  # TODO pillar stuff, cli toString alternative
+  print(glue::glue('# keyed_df4[{toString(ukey_colnames(x))}] of:\n'))
+  NextMethod()
+}
+
+#' @export
 `names<-.keyed_df4` <- function(x, value) {
   result <- NextMethod()
   old_names <- names(x)
@@ -115,23 +130,40 @@ df_as_keyed_df4_if_compatible <- function(df, ukey_colnames) {
 }
 
 kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = NULL, j = NULL) {
-  if (i has duplicates) {
-    no
+  if (vctrs::vec_duplicate_any(i)) {
+    return(df_ensure_not_kdf4(extraction))
   }
-  # if (j drops ukey cols) {
-  if (i not all same dropped ukey col vals) {
-    no
+  if (is.null(j)) {
+    return(df_ensure_structural_keyed_df4(extraction, ukey_colnames(original)))
+  }
+  if (!is.character(j)) {
+    j <- names(original)[j]
+  }
+  dropped_ukey_colnames <- vctrs::vec_set_difference(ukey_colnames(original), j)
+  if (length(dropped_ukey_colnames) == 0L) {
+    return(df_ensure_structural_keyed_df4(extraction, ukey_colnames(original)))
+  }
+  if (is.null(i)) {
+    dropped_ukey_col_values <- kdf4_super(original)[dropped_ukey_colnames]
   } else {
-    yes, with altered ukey cols
+    dropped_ukey_col_values <- kdf4_super(original)[i, dropped_ukey_colnames]
   }
-  # } else {
-  #   yes
-  # }
+  # TODO vs. vctrs::vec_unique_count:
+  if (vctrs::vec_size(dropped_ukey_col_values) != 0L &&
+        !all(vctrs::vec_equal(dropped_ukey_col_values, dropped_ukey_col_values[1,]))) {
+    # technically we could still have unique new-ukey values here,
+    # but it seems like a violation anyway
+    df_ensure_not_kdf4(extraction)
+  } else {
+    df_ensure_structural_keyed_df4(extraction, vctrs::vec_set_difference(ukey_colnames(original), dropped_ukey_colnames))
+  }
 }
 
 #' @export
-`[.keyed_df2` <- function(x, i, j, ..., drop = FALSE) {
+`[.keyed_df4` <- function(x, i, j, ..., drop = FALSE) {
   rlang::check_dots_empty0(...)
+
+  result <- NextMethod()
 
   call_was_1d <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
   if (call_was_1d) {
@@ -140,7 +172,6 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
     if (is.matrix(i)) {
       # Logical or integer matrix indexing.  Output class is based on
       # element classes; do not adjust.
-      result <- NextMethod()
       return(result)
     } else {
       # Standardize.
@@ -152,16 +183,10 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
     # x[i,], x[,j], x[,], x[j = j], or x[].
     if (missing(i)) i <- NULL
     if (missing(j)) j <- NULL
-    # TODO vs. forward to helper method?
   }
-
-  if (is.null(j)) {
-    dropped_ukey_colnames <- character()
-  } else {
-    # ... don't want to have to double-munge j format to figure out dropped_ukey_colnames... try to use delegate+restore approach? though it will likely have more trouble with drop = TRUE... unless delegate with drop = FALSE.
+  result <- kdf4_extraction_restore_kdf4_if_possible(result, x, i, j)
+  if (drop && length(result) == 1L) {
+    result <- result[[1L]]
   }
-
-  # TODO deal with selection
-
-  # TODO deal with drop = TRUE
+  result
 }
