@@ -70,3 +70,7 @@ prof(for (i in 1:100000) toy1_ktbl4[1:3,])
 
 
 prof(for (i in 1:100000) toy_tbl1[1:3,])
+
+
+# FIXME
+vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)

@@ -194,3 +194,8 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   }
   result
 }
+
+# TODO seems like joins will each require a method impl that uses a
+# basic(???) role-indicator-wrapper to preserve things for
+# reconstruction.  Vs. just allow the reconstruct-based-on-first
+# approach?
