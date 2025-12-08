@@ -130,7 +130,11 @@ print.keyed_df4 <- function(x, ...) {
 }
 
 kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = NULL, j = NULL) {
-  if (vctrs::vec_duplicate_any(i)) {
+  if (anyNA(i)) {
+    return(df_ensure_not_kdf4(extraction))
+  }
+  if (is.numeric(i) && length(i) >= 1L && i[[1L]] >= 1L && (max(i) > nrow(original) || vctrs::vec_duplicate_any(i))) {
+    # TODO or make > nrow a hard error? maybe through a non-restore interface (maybe using vec_slice)?
     return(df_ensure_not_kdf4(extraction))
   }
   if (is.null(j)) {
