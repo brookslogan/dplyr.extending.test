@@ -74,3 +74,7 @@ prof(for (i in 1:100000) toy_tbl1[1:3,])
 
 # FIXME
 vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)
+
+# TODO consider having a kdf4_slice class that temporarily allows key violations, so default group_by type approach might work?
+
+# TODO when filtering to a single key value, consider storing that key value in metadata?  already checking for existence. nice for printing. but will it add too much complexity or overhead?
