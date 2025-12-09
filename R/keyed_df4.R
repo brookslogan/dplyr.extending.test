@@ -198,4 +198,24 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 # TODO seems like joins will each require a method impl that uses a
 # basic(???) role-indicator-wrapper to preserve things for
 # reconstruction.  Vs. just allow the reconstruct-based-on-first
-# approach?
+# approach?  No, just have a method for each that performs the logic
+# to determine the appropriate output key, and convert at the end.
+# Don't want the based-on-first approach, so have to have these
+# methods.  It's bind_* that has less controllable behavior.
+# bind_rows may just be a less efficient vec_rbind once that's
+# properly adjusted; or not: what ptype2 logic could say that we might
+# decay depending on keys?  Perhaps something with attrs or stripping
+# val cols that makes the (sorted?.......) ukey set part of the ptype,
+# and ptype2 having to do combination logic... except incompatible
+# with what we'd do with vec_cbind... so vec_*bind would have to be
+# more demanding and degrade very quickly to tibble... except
+# self-self needs to return self for other purposes, plus it's still a
+# rbind vs cbind mismatch (drop vs. keep)... solution may be
+# conditional hard errors.  bind_cols and vec_cbind might be true
+# problem cases... and the ones that might actually require column
+# wrappers ... except also they probably would need to be the
+# complicated integrated wrappers (ukey_col_varprefix work).
+
+# ptype2 logic... may want to consider decorator interchangeability
+# and canonical ordering... but don't have to; can just require
+# matching order
