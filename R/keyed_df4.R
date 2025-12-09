@@ -219,3 +219,10 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 # ptype2 logic... may want to consider decorator interchangeability
 # and canonical ordering... but don't have to; can just require
 # matching order
+
+
+# TODO pivot functions
+
+# TODO separate unit & time ukeys & aggregation mechanisms...
+# * index_by approach?
+# * auto-mark detectably-derived cols purely from unit or purely from time + group_by & .by doing something similar?
