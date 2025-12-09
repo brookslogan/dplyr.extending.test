@@ -85,11 +85,17 @@ df_check_kdf4_compatible <- function(x, ukey_colnames) {
   # TODO proper caller_arg passing
   if (!all(ukey_colnames %in% names(x))) {
     "didn't have one of the `ukey_colnames`"
-  } else if (vctrs::vec_duplicate_any(kdf4_super(x)[ukey_colnames]) ||
-               nrow(x) > 1L && length(ukey_colnames) == 0L) {
-    "contained duplicate ukey values"
   } else {
-    TRUE
+    if (inherits(x, "keyed_df4")) {
+      maybe_super <- kdf4_super(x)
+    } else {
+      maybe_super <- x
+    }
+    if (vctrs::vec_duplicate_any(maybe_super[ukey_colnames])) {
+      "contained duplicate ukey values"
+    } else {
+      TRUE
+    }
   }
 }
 
@@ -162,6 +168,15 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
     df_ensure_structural_keyed_df4(extraction, vctrs::vec_set_difference(ukey_colnames(original), dropped_ukey_colnames))
   }
 }
+# TODO vs. inline
+#
+# TODO vs. known-2D extractor function
+#
+# TODO vs. 3 functions
+#
+# TODO consider whether just to turn row&col slice into row-slice
+# followed by col-slice; slices some unnecessary columns but might
+# actually be faster
 
 #' @export
 `[.keyed_df4` <- function(x, i, j, ..., drop = FALSE) {
@@ -191,6 +206,25 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   result <- kdf4_extraction_restore_kdf4_if_possible(result, x, i, j)
   if (drop && length(result) == 1L) {
     result <- result[[1L]]
+  }
+  result
+}
+
+#' @export
+`[<-.keyed_df4` <- function(x, i, j, ..., value) {
+  rlang::check_dots_empty0(...)
+
+  result <- NextMethod()
+  if (!is.character(j)) {
+    j <- names(x)[j]
+  }
+  x_ukey_colnames <- ukey_colnames(x)
+  if (any(j %in% x_ukey_colnames)) {
+    # XXX S3 dispatch on names probably a decorator dispatch
+    # violation... temporarily turn into kdf4_super, re-dispatch,
+    # conditionally kdf4, then tack back subclasses?
+    maybe_new_ukey_colnames <- vctrs::vec_set_intersect(names(result), x_ukey_colnames)
+    result <- df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(result), maybe_new_ukey_colnames)
   }
   result
 }
@@ -226,3 +260,5 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 # TODO separate unit & time ukeys & aggregation mechanisms...
 # * index_by approach?
 # * auto-mark detectably-derived cols purely from unit or purely from time + group_by & .by doing something similar?
+
+# TODO ephemeral role-specifying wrappers for inset operations?
