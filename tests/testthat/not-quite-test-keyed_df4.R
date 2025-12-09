@@ -80,6 +80,14 @@ toy1_ktbl4 %>% inset(1:3, "u", value = 3)
 
 toy1_ktbl4 %>% inset("u", value = 3)
 
+toy1_ktbl4 %>% mutate(v = v + 10)
+
+toy1_ktbl4 %>% mutate(u = if_else(u == 1, 2, u))
+
+toy1_ktbl4 %>% mutate(u = if_else(u == 1, 3, u))
+
+toy1_ktbl4 %>% mutate(u = 3)
+
 # FIXME
 vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)
 

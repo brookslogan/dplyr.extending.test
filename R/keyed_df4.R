@@ -57,10 +57,10 @@ ukey_colnames.keyed_df4 <- function(x) {
 }
 
 kdf4_self <- function(x) {
-  if (!inherits(nominal_kdf4, "keyed_df4")) {
-    cli::cli_abort("`nominal_kdf4` was not marked a keyed_df4 to begin with")
+  if (!inherits(x, "keyed_df4")) {
+    cli::cli_abort("`x` was not marked a keyed_df4 to begin with")
   }
-  result <- nominal_kdf4
+  result <- x
   old_class <- class(result)
   # TODO note only nominally stripping subclasses; attrs may remain.
   class(result) <- old_class[match("keyed_df4", old_class):length(old_class)]
@@ -115,6 +115,9 @@ df_as_keyed_df4_if_compatible <- function(df, ukey_colnames) {
   if (isTRUE(df_check_kdf4_compatible(df, ukey_colnames))) {
     df_ensure_structural_keyed_df4(df, ukey_colnames)
   } else {
+    # XXX if was nominal or structural or structural-minus-nominal
+    # kdf4 that needs to decay, we have to ensure not... not sure this
+    # function as-is is that helpful
     df
   }
 }
@@ -253,6 +256,35 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   x[i] <- list(value)
 }
 
+
+#' @export
+dplyr_row_slice.keyed_df4 <- function(data, i, ...) {
+  kdf4_self(data)[i,]
+  # XXX may have old subclass attrs sticking around, but maybe not
+  # guaranteed... do we need to guarantee or does subclass need to
+  # guarantee correct post-processing?
+}
+
+#' @export
+dplyr_col_modify.keyed_df4 <- function(data, cols) {
+  data <- kdf4_self(data)
+  # XXX may have old subclass attrs sticking around, but maybe not
+  # guaranteed... do we need to guarantee or does subclass need to
+  # guarantee correct post-processing?
+  data[names(cols)] <- cols
+  data
+}
+
+#' @export
+dplyr_reconstruct.keyed_df4 <- function(data, template) {
+  df_if_kdf4_compatible_as_kdf4(df_ensure_not_kdf2(NextMethod()), ukey_colnames(template))
+  # XXX may have old subclass attrs sticking around, but maybe not
+  # guaranteed... do we need to guarantee or does subclass need to
+  # guarantee correct post-processing?
+}
+
+
+
 # TODO seems like joins will each require a method impl that uses a
 # basic(???) role-indicator-wrapper to preserve things for
 # reconstruction.  Vs. just allow the reconstruct-based-on-first
@@ -278,6 +310,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 # and canonical ordering... but don't have to; can just require
 # matching order
 
+# TODO group_by
 
 # TODO pivot functions
 
