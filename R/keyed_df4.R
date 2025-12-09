@@ -184,7 +184,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 
   result <- NextMethod()
 
-  call_was_1d <- nargs() - rlang::dots_n(...) == 2L && !missing(i)
+  call_was_1d <- nargs() == 2L && !missing(i)
   if (call_was_1d) {
     # We were called along the lines of x[cols/lmat/imat] (or x[i =
     # cols/lmat/imat]); handle or standardize.
@@ -215,10 +215,22 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   rlang::check_dots_empty0(...)
 
   result <- NextMethod()
+
+  x_ukey_colnames <- ukey_colnames(x)
+  call_was_1d <- nargs() == 3L && !missing(i)
+  if (call_was_1d) {
+    if (is.matrix(i)) {
+      maybe_new_ukey_colnames <- vctrs::vec_set_intersect(names(result), x_ukey_colnames)
+      result <- df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(result), maybe_new_ukey_colnames)
+      return(result)
+    } else {
+      j <- i
+      i <- NULL
+    }
+  }
   if (!is.character(j)) {
     j <- names(x)[j]
   }
-  x_ukey_colnames <- ukey_colnames(x)
   if (any(j %in% x_ukey_colnames)) {
     # XXX S3 dispatch on names probably a decorator dispatch
     # violation... temporarily turn into kdf4_super, re-dispatch,
@@ -227,6 +239,18 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
     result <- df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(result), maybe_new_ukey_colnames)
   }
   result
+}
+
+#' @export
+`$<-.keyed_df4` <- function(x, name, value) {
+  x[name] <- list(value)
+}
+
+#' @export
+`[[<-.keyed_df4` <- function(x, i, value) {
+  # XXX documentation for args of `[[<-` being limited to (x, i, value)
+  # doesn't match what we can put into data.frame `[[<-` methods...
+  x[i] <- list(value)
 }
 
 # TODO seems like joins will each require a method impl that uses a

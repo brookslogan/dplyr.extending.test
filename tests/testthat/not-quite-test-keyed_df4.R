@@ -78,6 +78,8 @@ toy1_ktbl4 %>% inset(1:3, "u", value = 2)
 
 toy1_ktbl4 %>% inset(1:3, "u", value = 3)
 
+toy1_ktbl4 %>% inset("u", value = 3)
+
 # FIXME
 vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)
 
