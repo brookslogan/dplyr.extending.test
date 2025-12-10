@@ -88,8 +88,10 @@ toy1_ktbl4 %>% mutate(u = if_else(u == 1, 3, u))
 
 toy1_ktbl4 %>% mutate(u = 3)
 
-# FIXME
 vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)
+
+# ... vec_cbind doesn't seem to follow using vec_ptype2 to determine the type of the container, which is probably good because it would not make sense and would create headaches.
+vctrs::vec_cbind(toy1_ktbl4, toy1_ktbl4)
 
 # TODO consider having a kdf4_slice class that temporarily allows key violations, so default group_by type approach might work?
 

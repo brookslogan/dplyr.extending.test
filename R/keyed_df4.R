@@ -99,6 +99,19 @@ df_check_kdf4_compatible <- function(x, ukey_colnames) {
   }
 }
 
+# TODO better doc
+#' Convert to kdf4
+#' @export
+as_keyed_df4 <- function(x, ukey_colnames) {
+  check <- df_check_kdf4_compatible(x, ukey_colnames)
+  if (isTRUE(check)) {
+    df_ensure_structural_keyed_df4(x, ukey_colnames)
+  } else {
+    # TODO use validator function instead.
+    cli::cli_abort("`x` {check}")
+  }
+}
+
 # TODO validate
 
 df_ensure_structural_keyed_df4 <- function(df, ukey_colnames) {
@@ -282,6 +295,48 @@ dplyr_reconstruct.keyed_df4 <- function(data, template) {
   # guaranteed... do we need to guarantee or does subclass need to
   # guarantee correct post-processing?
 }
+
+#' @importFrom vctrs vec_ptype2
+#' @importFrom rlang caller_arg caller_env
+#' @export
+vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+  # XXX there's also the matter of ukey ordering... we might use this
+  # to determine convenience sorts, so we may not necessarily be able
+  # to apply a fixed-(C-)locale alphabetization to get a canonical
+  # ptype.  Let's just require strict matching.
+  if (identical(ukey_colnames(x), ukey_colnames(y))) {
+    new_keyed_df4(vec_ptype2(
+      kdf4_super(x),
+      kdf4_super(y),
+      ...,
+      x_arg = glue::glue('kdf4_super({x_arg})'),
+      y_arg = glue::glue('kdf4_super({y_arg})'),
+      call = call
+    ), ukey_colnames(x))
+    # TODO args and call --- grab from ukey col wrapper work
+  } else {
+    cli::cli_abort("`{x_arg}` and `{y_arg}` have incompatible `ukey_colnames`")
+    # TODO args and call --- grab from ukey col wrapper work
+  }
+}
+
+# TODO other vec_ptype2 impls
+
+# #' @importFrom vctrs vec_proxy
+# #' @export
+# vec_proxy.keyed_df4 <- function(x, ...) {
+#   x
+# }
+
+#' @importFrom vctrs vec_restore
+#' @export
+vec_restore.keyed_df4 <- function(x, to, ...) {
+  as_keyed_df4(vec_restore(kdf4_super(x), kdf4_super(to)), ukey_colnames(to))
+}
+
+# TODO finish
+
+# TODO review https://vctrs.r-lib.org/reference/howto-faq-coercion-data-frame.html
 
 
 
