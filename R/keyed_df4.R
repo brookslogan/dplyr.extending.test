@@ -374,3 +374,9 @@ vec_restore.keyed_df4 <- function(x, to, ...) {
 # * auto-mark detectably-derived cols purely from unit or purely from time + group_by & .by doing something similar?
 
 # TODO ephemeral role-specifying wrappers for inset operations?
+
+# group_data extension rather than attr "groups" modifications may
+# make inheritance make more sense as structure is only added rather
+# than changed.  though duplicate processing on re-dispatch still
+# applies.  however, decorator approach still seems like it would be
+# more flexible if the structure assumptions were ever removed.

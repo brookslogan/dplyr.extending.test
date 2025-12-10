@@ -148,3 +148,5 @@ group_data.keyed_tbl3 <- function(.data) {
 NULL
 
 # TODO try with vctrs rcrd instead?  might be better for managing some metadata, and might be more natural for delegation... except dplyr wants data.frame...
+
+# TODO try with (decorator_df, [grouped_df,] [tbl_df, tbl,] df) class, with decorator_df having a nested attr structure to hold the decorator stack? or perhaps class (top_of_stack, decorator_df, [grouped_df,] [tbl_df, tbl,] df)?
