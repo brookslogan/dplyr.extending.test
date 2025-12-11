@@ -309,7 +309,9 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
   #
   # TODO what about non-identical? if (sxy, ox) is unique in x and
   # (sxy, oy) is unique in y, do we attempt (sxy, ox, oy)? if (sxy,
-  # ax) and (sxy), do we attempt (sxy, ax)?
+  # ax) and (sxy), do we attempt (sxy, ax)?  Maybe not automatically;
+  # seems automatic is tied to rbinding and "implicit" rbinding... we
+  # could allow vec_cast to add more ukey cols though.
   x_ukey_colnames <- ukey_colnames(x)
   y_ukey_colnames <- ukey_colnames(y)
   if (identical(x_ukey_colnames, y_ukey_colnames)) {
@@ -317,8 +319,8 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
       kdf4_super(x),
       kdf4_super(y),
       ...,
-      x_arg = glue::glue('kdf4_super({x_arg})'),
-      y_arg = glue::glue('kdf4_super({y_arg})'),
+      x_arg = glue::glue("kdf4_super({x_arg})"),
+      y_arg = glue::glue("kdf4_super({y_arg})"),
       call = call
     ), x_ukey_colnames)
   } else {
@@ -335,7 +337,99 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
   }
 }
 
+#' @export
+vec_ptype2.keyed_df4.data.frame <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+  vec_ptype2(
+    kdf4_super(x), y, ...,
+    x_arg = glue::glue("kdf4_super({x_arg})"),
+    y_arg = y_arg,
+    call = call
+  )
+}
+
+#' @export
+vec_ptype2.keyed_df4.tbl_df <- vec_ptype2.keyed_df4.data.frame
+
+#' @export
+vec_ptype2.data.frame.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+  vec_ptype2(
+    x, kdf4_super(y), ...,
+    x_arg = x_arg,
+    y_arg = glue::glue("kdf4_super({y_arg})"),
+    call = call
+  )
+}
+
+#' @export
+vec_ptype2.tbl_df.keyed_df4 <- vec_ptype2.data.frame.keyed_df4
+
+# XXX no way to make this work with decorators that don't know about each other... unless we have a decorator_df as the head class always and have it handle dispatch, which might be doable...
+
+# TODO consider at least vec_cast to/from tsibble (to only for time-key-supporting...)
+
 # TODO other vec_ptype2 impls
+
+# TODO vec_cast
+
+#' @export
+vec_cast.keyed_df4.keyed_df4 <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
+  x_ukey_colnames <- ukey_colnames(x)
+  to_ukey_colnames <- ukey_colnames(to)
+  if (identical(x_ukey_colnames, to_ukey_colnames)) {
+    x
+  } else if (all(x_ukey_colnames %in% to_ukey_colnames)) {
+    attr(x, "dplyr.extending.test::ukey_colnames") <- to_ukey_colnames
+    x
+  } else {
+    vctrs::stop_incompatible_cast(
+      x, to, ..., x_arg = x_arg, to_arg = to_arg,
+      details = cli::format_message(c(
+        "x" = "`{to_arg}`'s ukey colnames were not a superset of `{x_arg}`'s",
+        "i" = "`ukey_colnames({x_arg})`: {ukey_colnames(x)}",
+        "i" = "`ukey_colnames({to_arg})`: {ukey_colnames(to)}"
+        # TODO port format functions
+      ))
+    )
+  }
+}
+
+#' @export
+vec_cast.keyed_df4.data.frame <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
+  # # vctrs native dispatch -> we are head class; we can re-dispatch cleanly
+  # dplyr_reconstruct(x, to)
+  as_keyed_df4(
+    vec_cast(x, kdf4_super(to), ..., x_arg = x_arg, to_arg = "kdf4_super({to_arg})", call = call),
+    ukey_colnames(to)
+  )
+}
+
+#' @export
+vec_cast.keyed_df4.tbl_df <- vec_cast.keyed_df4.data.frame
+
+#' @export
+vec_cast.data.frame.keyed_df4 <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
+  vec_cast(kdf4_super(x), to, ..., x_arg = glue::glue("kdf4_super({x_arg})"), to_arg = to_arg, call = call)
+}
+
+#' @export
+vec_cast.tbl_df.keyed_df4 <- vec_cast.data.frame.keyed_df4
+
+#' @method as.data.frame keyed_df4
+#' @export
+as.data.frame.keyed_df4 <- function(x, ...) {
+  result <- NextMethod()
+  # TODO refactor this into a function? df_ensure_not_kdf4 doesn't clean attrs of non-kdf4-classed things
+  attr(result, "dplyr.extending.test::ukey_colnames") <- NULL
+  result
+}
+
+#' @method as_tibble keyed_df4
+#' @export
+as_tibble.keyed_df4 <- function(x, ...) {
+  result <- NextMethod()
+  attr(result, "dplyr.extending.test::ukey_colnames") <- NULL
+  result
+}
 
 # #' @importFrom vctrs vec_proxy
 # #' @export
