@@ -443,6 +443,20 @@ vec_restore.keyed_df4 <- function(x, to, ...) {
   as_keyed_df4(vec_restore(kdf4_super(x), kdf4_super(to)), ukey_colnames(to))
 }
 
+#' @importFrom dplyr group_data
+#' @export
+group_by.keyed_df4 <- function(.data, ...) {
+  df_ensure_structural_keyed_df4(NextMethod(), ukey_colnames(.data))
+}
+
+#' @importFrom dplyr group_data
+#' @export
+group_data.keyed_df4 <- function(.data) {
+  result <- NextMethod()
+  .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
+  new_keyed_df4(result, .data_group_vars)
+}
+
 # TODO finish
 
 # TODO review https://vctrs.r-lib.org/reference/howto-faq-coercion-data-frame.html
