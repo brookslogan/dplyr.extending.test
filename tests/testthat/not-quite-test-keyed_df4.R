@@ -93,6 +93,8 @@ vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)
 # ... vec_cbind doesn't seem to follow using vec_ptype2 to determine the type of the container, which is probably good because it would not make sense and would create headaches.
 vctrs::vec_cbind(toy1_ktbl4, toy1_ktbl4)
 
+vec_rbind(toy1_ktbl4, tibble() %>% new_keyed_df4(character()))
+
 # TODO consider having a kdf4_slice class that temporarily allows key violations, so default group_by type approach might work?
 
 # TODO when filtering to a single key value, consider storing that key value in metadata?  already checking for existence. nice for printing. but will it add too much complexity or overhead?

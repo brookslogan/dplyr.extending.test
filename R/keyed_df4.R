@@ -304,7 +304,15 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
   # to determine convenience sorts, so we may not necessarily be able
   # to apply a fixed-(C-)locale alphabetization to get a canonical
   # ptype.  Let's just require strict matching.
-  if (identical(ukey_colnames(x), ukey_colnames(y))) {
+  #
+  # XXX vs. just favoring x's ordering...
+  #
+  # TODO what about non-identical? if (sxy, ox) is unique in x and
+  # (sxy, oy) is unique in y, do we attempt (sxy, ox, oy)? if (sxy,
+  # ax) and (sxy), do we attempt (sxy, ax)?
+  x_ukey_colnames <- ukey_colnames(x)
+  y_ukey_colnames <- ukey_colnames(y)
+  if (identical(x_ukey_colnames, y_ukey_colnames)) {
     new_keyed_df4(vec_ptype2(
       kdf4_super(x),
       kdf4_super(y),
@@ -312,11 +320,18 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
       x_arg = glue::glue('kdf4_super({x_arg})'),
       y_arg = glue::glue('kdf4_super({y_arg})'),
       call = call
-    ), ukey_colnames(x))
-    # TODO args and call --- grab from ukey col wrapper work
+    ), x_ukey_colnames)
   } else {
-    cli::cli_abort("`{x_arg}` and `{y_arg}` have incompatible `ukey_colnames`")
-    # TODO args and call --- grab from ukey col wrapper work
+    # cli::cli_abort("`{x_arg}` and `{y_arg}` have incompatible `ukey_colnames`", call = call)
+    vctrs::stop_incompatible_type(
+      x, y, x_arg = x_arg, y_arg = y_arg, call = call,
+      details = cli::format_message(c(
+        "x" = "`{x_arg}` and `{y_arg}` had incompatible `ukey_colnames`",
+        "i" = "`ukey_colnames({x_arg})`: {ukey_colnames(x)}",
+        "i" = "`ukey_colnames({y_arg})`: {ukey_colnames(y)}"
+        # TODO port format functions
+      ))
+    )
   }
 }
 
