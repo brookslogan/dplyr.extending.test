@@ -371,7 +371,7 @@ vec_ptype2.data.frame.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_
 #' @export
 vec_ptype2.tbl_df.keyed_df4 <- vec_ptype2.data.frame.keyed_df4
 
-# XXX no way to make this work with decorators that don't know about each other... unless we have a decorator_df as the head class always and have it handle dispatch, which might be doable...
+# XXX no(?) way to make this work with decorators that don't know about each other... unless we have a decorator_df as the head class always and have it handle dispatch, which might be doable... or maybe we can have a registry of df-lookalikes plus vctrs ptypes, and auto-register a whole bunch of stuff on new_* as well as hook on every installed package...
 
 # TODO consider at least vec_cast to/from tsibble (to only for time-key-supporting...)
 
