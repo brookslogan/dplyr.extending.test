@@ -28,7 +28,7 @@ new_keyed_df4 <- function(df, ukey_colnames) {
   # TODO rowwise
   df
 }
-# TODO check that not data.table?
+# TODO check that not data.table? perhaps might not have to, if we're data.table-unaware? but then vctrs stuff might need to consider data.table.
 
 #' Convert a nominal kdf4 (or subclass) into a not-kdf4
 #'
@@ -350,6 +350,14 @@ vec_ptype2.keyed_df4.data.frame <- function(x, y, ..., x_arg = caller_arg(x), y_
 #' @export
 vec_ptype2.keyed_df4.tbl_df <- vec_ptype2.keyed_df4.data.frame
 
+# if not actually potentially part of a decorator stack, could just rely on vec_default_{cast,ptype2}...
+
+# #' @export
+# vec_ptype2.keyed_df4.default <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+#   cat("MADE IT HERE!\n")
+#   stop("TODO")
+# }
+
 #' @export
 vec_ptype2.data.frame.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
   vec_ptype2(
@@ -423,6 +431,7 @@ as.data.frame.keyed_df4 <- function(x, ...) {
   result
 }
 
+#' @importFrom tibble as_tibble
 #' @method as_tibble keyed_df4
 #' @export
 as_tibble.keyed_df4 <- function(x, ...) {
