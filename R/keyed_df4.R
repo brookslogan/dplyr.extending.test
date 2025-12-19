@@ -52,7 +52,7 @@ df_ensure_not_kdf4 <- function(df) {
 }
 
 #' @export
-ukey_colnames.keyed_df4 <- function(x) {
+ukey_colnames_else_null.keyed_df4 <- function(x) {
   attr(x, "dplyr.extending.test::ukey_colnames")
 }
 
@@ -465,6 +465,70 @@ group_data.keyed_df4 <- function(.data) {
   .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
   new_keyed_df4(result, .data_group_vars)
 }
+
+#' @importFrom dplyr inner_join
+#' @export
+inner_join.keyed_df4 <- function(x, y, ..., relationship) {
+  if (inherits(by, "dplyr_join_by")) {
+    y_by_colnames <- by$y
+  } else {
+    y_by_colnames <- unname(y)
+  }
+  y_ukey_colnames_else_null <- ukey_colnames_else_null(y)
+  if (is.null(y_ukey_colnames_else_null)) {
+    # Often, `y_by_colnames` act as a ukey for `y`.  Either
+    # `relationship` should guarantee that this is the case, or we
+    # should check if it's valid.
+    if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one")) {
+      y_ukey_colnames_else_null <- y_by_colnames
+    } else if (isTRUE(df_check_kdf4_compatible(y, y_by_colnames))) {
+      y_ukey_colnames_else_null <- y_by_colnames
+    } # else we don't know a "reasonable" ukey for `y`
+  }
+  # Avoid unnecessary ukey validation from NextMethod()'s
+  # dplyr_reconstruct by converting to superclass:
+  x_class <- class(x)
+  x_self_ind <- match("keyed_df4", x_class)
+  x_subclass <- x_class[seq_len(x_self_ind - 1L)]
+  class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
+  result <- NextMethod()
+
+  stop("TODO")
+
+  # fixme cannot just tack on subclass... need reconstruction, but
+  # dplyr_reconstruct would also then re-trigger parent class,
+  # expensive; maybe we need to use df_ensure_not_kdf4 but then have
+  # something to decide where in class vector to put keyed_df4 back
+  # in?
+
+  # todo new_keyed_tibble4 if called for
+
+
+
+  # We want to avoid
+  # unnecessary ukey checks, and make sure that we assign the right
+  # ukey (if any) to the result.  Let's bypass NextMethod()
+  # reconstructing based on ukey of x and perform the appropriate
+
+
+
+  # We want to change up `x` so that `NextMethod()` calling
+  # `dplyr_reconstruct(<pending result>, x)` will not potentially generate ukey
+  # check errors; that means giving `x` the ukey attr we want the
+  # result to have (even if it means temporarily making the ukey attr
+  # for `x` not make sense in some cases...).  This ends up
+  if (is.null(y_ukey_colnames_else_null)) {
+    x <- df_ensure_not_kdf4(x)
+  } else {
+    attr(x, "dplyr.extending.test::ukey_colnames") <- c(ukey_colnames(x), vctrs::vec_set_difference(ukey_colnames(y), y_by_colnames))
+  }
+  maybe_result_ukey_colnames <- vctrs::vec_set_union(ukey_colnames(x), ukey_colnames(y))
+  attr(x, "dplyr.extending.test::ukey_colnames") <- maybe_result_ukey_colnames
+  NextMethod()
+}
+
+
+# TODO nest and unnest, ...
 
 # TODO finish
 

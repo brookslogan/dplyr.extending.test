@@ -1,6 +1,6 @@
-#' Thoughts on inheritance after initial draft of keyed_df4
 #' @name inheritance_notes_again
-#'
+#' @title Thoughts on inheritance after initial draft of keyed_df4
+#' @description
 #' S3 methods provide one way to obtain (downstream-extensible)
 #' polymorphism, allowing analogous operations for different classes
 #' to be called using the same function name (and for downstream

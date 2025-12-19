@@ -17,7 +17,7 @@ new_keyed_tbl3 <- function(x, ukey_colnames) {
 }
 
 #' @export
-ukey_colnames.keyed_tbl3 <- function(x) {
+ukey_colnames_else_null.keyed_tbl3 <- function(x) {
   attr(x, "dplyr.extending.test::ukey_colnames")
 }
 
