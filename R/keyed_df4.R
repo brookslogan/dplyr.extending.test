@@ -499,7 +499,11 @@ inner_join.keyed_df4 <- function(x, y, ..., relationship) {
   # dplyr_reconstruct would also then re-trigger parent class,
   # expensive; maybe we need to use df_ensure_not_kdf4 but then have
   # something to decide where in class vector to put keyed_df4 back
-  # in?
+  # in? but what if another decorator depends on our presence to
+  # reconstruct? are we forced to have an attr to turn off costly
+  # reconstruction for each decorator and pre-adjust the attrs of x to
+  # something potentially invalid so that result will be valid, or
+  # even more work to try to make something valid?
 
   # todo new_keyed_tibble4 if called for
 
