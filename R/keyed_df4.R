@@ -531,6 +531,40 @@ inner_join.keyed_df4 <- function(x, y, ..., relationship) {
   NextMethod()
 }
 
+#' @export
+light_reconstruct <- function(data, template) UseMethod("light_reconstruct", template)
+
+#' @export
+light_reconstruct.grouped_df <- function(data, template) {
+
+}
+
+#' @export
+light_reconstruct.default <- function(data, template) {
+  print(.Class)
+  data <- tibble::as_tibble(data)
+  class(data) <- .Class
+  dplyr_reconstruct(data, template)
+  # FIXME subclasses and subclass attrs?
+}
+
+# not sure if this is actually workable... perhaps if require data to
+# start from ancestor class and we ignore any subclass attrs hanging
+# around, which might let us know when to stop trying to
+# reconstruct... unless the ancestor's partial reconstruction made it
+# "drop"/not-add some classes, in which case we'd retry... plus we
+# couldn't do things like accepting a valid subclass object in data
+# and trying to make it match template attrs else drop the class&attrs.
+
+# can we just fake partial reconstruction with dplyr_reconstruct and a
+# template lacking parent classes?
+
+# would it help to have a class to insert between wrapper and wrapees
+# with dplyr_reconstruct simply echoing back data?
+
+# vs. have ephemeral per-subclass attr to say not to perform any validation and
+# simply accept that subclass&attrs from template?
+
 
 # TODO nest and unnest, ...
 
