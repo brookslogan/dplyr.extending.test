@@ -468,11 +468,15 @@ group_data.keyed_df4 <- function(.data) {
 
 #' @importFrom dplyr inner_join
 #' @export
-inner_join.keyed_df4 <- function(x, y, ..., relationship) {
+inner_join.keyed_df4 <- function(x, y, by = NULL, ..., relationship) {
+  if (is.null(by)) {
+    cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
+    by <- vctrs::vec_set_intersect(names(x), names(y))
+  }
   if (inherits(by, "dplyr_join_by")) {
     y_by_colnames <- by$y
   } else {
-    y_by_colnames <- unname(y)
+    y_by_colnames <- unname(by)
   }
   y_ukey_colnames_else_null <- ukey_colnames_else_null(y)
   if (is.null(y_ukey_colnames_else_null)) {
@@ -487,66 +491,34 @@ inner_join.keyed_df4 <- function(x, y, ..., relationship) {
   }
   # Avoid unnecessary ukey validation from NextMethod()'s
   # dplyr_reconstruct by converting to superclass:
+  orig_x <- x
   x_class <- class(x)
   x_self_ind <- match("keyed_df4", x_class)
   x_subclass <- x_class[seq_len(x_self_ind - 1L)]
   class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
   result <- NextMethod()
-
-  stop("TODO")
-
-  # fixme cannot just tack on subclass... need reconstruction, but
-  # dplyr_reconstruct would also then re-trigger parent class,
-  # expensive; maybe we need to use df_ensure_not_kdf4 but then have
-  # something to decide where in class vector to put keyed_df4 back
-  # in? but what if another decorator depends on our presence to
-  # reconstruct? are we forced to have an attr to turn off costly
-  # reconstruction for each decorator and pre-adjust the attrs of x to
-  # something potentially invalid so that result will be valid, or
-  # even more work to try to make something valid?
-
-  # todo new_keyed_tibble4 if called for
-
-
-
-  # We want to avoid
-  # unnecessary ukey checks, and make sure that we assign the right
-  # ukey (if any) to the result.  Let's bypass NextMethod()
-  # reconstructing based on ukey of x and perform the appropriate
-
-
-
-  # We want to change up `x` so that `NextMethod()` calling
-  # `dplyr_reconstruct(<pending result>, x)` will not potentially generate ukey
-  # check errors; that means giving `x` the ukey attr we want the
-  # result to have (even if it means temporarily making the ukey attr
-  # for `x` not make sense in some cases...).  This ends up
-  if (is.null(y_ukey_colnames_else_null)) {
-    x <- df_ensure_not_kdf4(x)
-  } else {
-    attr(x, "dplyr.extending.test::ukey_colnames") <- c(ukey_colnames(x), vctrs::vec_set_difference(ukey_colnames(y), y_by_colnames))
+  template <- x
+  # XXX should we try to get updated ancestor attrs from `result`
+  # here, so we don't need descendent classes' `dplyr_reconstruct` to
+  # check `template` for their attrs and `result`/`data` for ancestor
+  # class attrs?  But how could we tell a descendent attribute from a
+  # nullable ancestor-class attribute that was nulled out during above
+  # partial reconstruction?  We might just end up corrupting the
+  # result's attributes; descendent classes' `dplyr_reconstruct` will
+  # just have to conform, or we need some sort of attr name registry.
+  if (!is.null(y_ukey_colnames_else_null)) {
+    result_ukey_colnames <- c(ukey_colnames(orig_x), vctrs::vec_set_difference(y_ukey_colnames_else_null, y_by_colnames))
+    print(result_ukey_colnames)
+    template <- new_keyed_df4(template, result_ukey_colnames)
+    result <- new_keyed_df4(result, result_ukey_colnames)
   }
-  maybe_result_ukey_colnames <- vctrs::vec_set_union(ukey_colnames(x), ukey_colnames(y))
-  attr(x, "dplyr.extending.test::ukey_colnames") <- maybe_result_ukey_colnames
-  NextMethod()
+  template <- reconstruct_as_is(template)
+  class(template) <- c(x_subclass, class(template))
+  result <- partial_reconstruct(result, template)
+  result
 }
 
-#' @export
-light_reconstruct <- function(data, template) UseMethod("light_reconstruct", template)
-
-#' @export
-light_reconstruct.grouped_df <- function(data, template) {
-
-}
-
-#' @export
-light_reconstruct.default <- function(data, template) {
-  print(.Class)
-  data <- tibble::as_tibble(data)
-  class(data) <- .Class
-  dplyr_reconstruct(data, template)
-  # FIXME subclasses and subclass attrs?
-}
+# TODO other joins
 
 # not sure if this is actually workable... perhaps if require data to
 # start from ancestor class and we ignore any subclass attrs hanging

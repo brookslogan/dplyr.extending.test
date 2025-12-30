@@ -98,3 +98,8 @@ vec_rbind(toy1_ktbl4, tibble() %>% new_keyed_df4(character()))
 # TODO consider having a kdf4_slice class that temporarily allows key violations, so default group_by type approach might work?
 
 # TODO when filtering to a single key value, consider storing that key value in metadata?  already checking for existence. nice for printing. but will it add too much complexity or overhead?
+
+toy_tbl2 <- tibble(u = c(1,1,2,2), t = 1, h = c("am", "pm", "am", "pm"), v2 = 1:4)
+toy2_ktbl4 <- new_keyed_df4(toy_tbl2, c("u", "t", "h"))
+
+inner_join(toy1_ktbl4, toy2_ktbl4, by = c("u", "t"))
