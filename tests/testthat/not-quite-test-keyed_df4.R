@@ -54,23 +54,23 @@ toy1_tsbl <- tsibble::as_tsibble(toy_tbl1, key = u, index = t)
 toy1_tsbl[1:4,2:3] # still tsibble?
 toy1_tsbl[1:4,][,2:3] # not
 
-bench::mark(
-  toy_tbl1[1:3,],
-  toy1_ktbl1[1:3,],
-  toy1_ktbl2[1:3,],
-  toy1_ktbl4[1:3,],
-  toy1_tsbl[1:3,],
-  check = FALSE,
-  min_time = 5,
-  max_iterations = 1e9
-)
+# bench::mark(
+#   toy_tbl1[1:3,],
+#   toy1_ktbl1[1:3,],
+#   toy1_ktbl2[1:3,],
+#   toy1_ktbl4[1:3,],
+#   toy1_tsbl[1:3,],
+#   check = FALSE,
+#   min_time = 5,
+#   max_iterations = 1e9
+# )
 
 # TODO also compare vs. data.table?  but it doesn't seem to require key uniqueness... its logic key is based on sortedness
 
-prof(for (i in 1:100000) toy1_ktbl4[1:3,])
+# prof(for (i in 1:100000) toy1_ktbl4[1:3,])
 
 
-prof(for (i in 1:100000) toy_tbl1[1:3,])
+# prof(for (i in 1:100000) toy_tbl1[1:3,])
 
 toy1_ktbl4 %>% inset(1:3, "v", value = 11:13)
 
@@ -88,12 +88,12 @@ toy1_ktbl4 %>% mutate(u = if_else(u == 1, 3, u))
 
 toy1_ktbl4 %>% mutate(u = 3)
 
-vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4)
+expect_error(vctrs::vec_rbind(toy1_ktbl4, toy1_ktbl4), regexp = "contained duplicate values")
 
 # ... vec_cbind doesn't seem to follow using vec_ptype2 to determine the type of the container, which is probably good because it would not make sense and would create headaches.
 vctrs::vec_cbind(toy1_ktbl4, toy1_ktbl4)
 
-vec_rbind(toy1_ktbl4, tibble() %>% new_keyed_df4(character()))
+expect_error(vctrs::vec_rbind(toy1_ktbl4, tibble() %>% new_keyed_df4(character())), class = "vctrs_error_incompatible_type")
 
 # TODO consider having a kdf4_slice class that temporarily allows key violations, so default group_by type approach might work?
 
@@ -103,3 +103,7 @@ toy_tbl2 <- tibble(u = c(1,1,2,2), t = 1, h = c("am", "pm", "am", "pm"), v2 = 1:
 toy2_ktbl4 <- new_keyed_df4(toy_tbl2, c("u", "t", "h"))
 
 inner_join(toy1_ktbl4, toy2_ktbl4, by = c("u", "t"))
+
+inner_join(toy1_ktbl4 %>% group_by(u), toy2_ktbl4, by = c("u", "t"))
+
+inner_join(toy1_ktbl4, toy2_ktbl4 %>% group_by(u), by = c("u", "t"))

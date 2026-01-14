@@ -290,7 +290,7 @@ dplyr_col_modify.keyed_df4 <- function(data, cols) {
 
 #' @export
 dplyr_reconstruct.keyed_df4 <- function(data, template) {
-  df_if_kdf4_compatible_as_kdf4(df_ensure_not_kdf2(NextMethod()), ukey_colnames(template))
+  df_as_keyed_df4_if_compatible(df_ensure_not_kdf2(NextMethod()), ukey_colnames(template))
   # XXX may have old subclass attrs sticking around, but maybe not
   # guaranteed... do we need to guarantee or does subclass need to
   # guarantee correct post-processing?
@@ -508,7 +508,6 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, ..., relationship) {
   # just have to conform, or we need some sort of attr name registry.
   if (!is.null(y_ukey_colnames_else_null)) {
     result_ukey_colnames <- c(ukey_colnames(orig_x), vctrs::vec_set_difference(y_ukey_colnames_else_null, y_by_colnames))
-    print(result_ukey_colnames)
     template <- new_keyed_df4(template, result_ukey_colnames)
     result <- new_keyed_df4(result, result_ukey_colnames)
   }
