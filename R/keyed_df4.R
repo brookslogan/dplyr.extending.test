@@ -488,7 +488,8 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, ..., relationship) {
     } else if (isTRUE(df_check_kdf4_compatible(y, y_by_colnames))) {
       y_ukey_colnames_else_null <- y_by_colnames
     } # else we don't know a "reasonable" ukey for `y`
-  }
+  } # TODO else change `relationship` for efficiency if we do know the ukey?
+  #
   # Avoid unnecessary ukey validation from NextMethod()'s
   # dplyr_reconstruct by converting to superclass:
   orig_x <- x
@@ -518,24 +519,7 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, ..., relationship) {
 }
 
 # TODO other joins
-
-# not sure if this is actually workable... perhaps if require data to
-# start from ancestor class and we ignore any subclass attrs hanging
-# around, which might let us know when to stop trying to
-# reconstruct... unless the ancestor's partial reconstruction made it
-# "drop"/not-add some classes, in which case we'd retry... plus we
-# couldn't do things like accepting a valid subclass object in data
-# and trying to make it match template attrs else drop the class&attrs.
-
-# can we just fake partial reconstruction with dplyr_reconstruct and a
-# template lacking parent classes?
-
-# would it help to have a class to insert between wrapper and wrapees
-# with dplyr_reconstruct simply echoing back data?
-
-# vs. have ephemeral per-subclass attr to say not to perform any validation and
-# simply accept that subclass&attrs from template?
-
+# * for other mutate-joins, if by-key b can be missing in x/y, then x/y must not be allowed to have additional key cols other than the by cols.
 
 # TODO nest and unnest, ...
 
