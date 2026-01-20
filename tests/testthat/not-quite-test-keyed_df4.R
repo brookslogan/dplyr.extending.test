@@ -107,3 +107,17 @@ inner_join(toy1_ktbl4, toy2_ktbl4, by = c("u", "t"))
 inner_join(toy1_ktbl4 %>% group_by(u), toy2_ktbl4, by = c("u", "t"))
 
 inner_join(toy1_ktbl4, toy2_ktbl4 %>% group_by(u), by = c("u", "t"))
+
+inner_join(
+  new_keyed_df4(tibble(k = 11:14, v = 1), "k"),
+  new_keyed_df4(tibble(k = 21:24, v = 1), "k"),
+  by = "v",
+  relationship = "many-to-many"
+)
+
+inner_join(
+  new_keyed_df4(tibble(u = 1, k = 11:14, v = 1), "k"),
+  new_keyed_df4(tibble(u = 1, k = 21:24, v = 1), "k"),
+  by = "u",
+  relationship = "many-to-many"
+)

@@ -468,16 +468,20 @@ group_data.keyed_df4 <- function(.data) {
 
 #' @importFrom dplyr inner_join
 #' @export
-inner_join.keyed_df4 <- function(x, y, by = NULL, ..., relationship) {
+inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., relationship = NULL) {
   if (is.null(by)) {
     cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
     by <- vctrs::vec_set_intersect(names(x), names(y))
   }
   if (inherits(by, "dplyr_join_by")) {
+    x_by_colnames <- by$x
     y_by_colnames <- by$y
   } else {
+    x_by_colnames <- names(by) %||% by
     y_by_colnames <- unname(by)
   }
+  x_ukey_colnames <- ukey_colnames(x)
+  x_nonby_ukey_colnames <- vctrs::vec_set_difference(x_ukey_colnames, x_by_colnames)
   y_ukey_colnames_else_null <- ukey_colnames_else_null(y)
   if (is.null(y_ukey_colnames_else_null)) {
     # Often, `y_by_colnames` act as a ukey for `y`.  Either
@@ -508,7 +512,21 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, ..., relationship) {
   # result's attributes; descendent classes' `dplyr_reconstruct` will
   # just have to conform, or we need some sort of attr name registry.
   if (!is.null(y_ukey_colnames_else_null)) {
-    result_ukey_colnames <- c(ukey_colnames(orig_x), vctrs::vec_set_difference(y_ukey_colnames_else_null, y_by_colnames))
+    x_nonby_ukey_colnames <- vctrs::vec_set_difference(x_ukey_colnames, x_by_colnames)
+    flag <- x_nonby_ukey_colnames %in% names(y)
+    x_nonby_ukey_colnames[flag] <- paste0(x_nonby_ukey_colnames[flag], suffix[[1L]])
+    y_nonby_ukey_colnames <- vctrs::vec_set_difference(y_ukey_colnames_else_null, y_by_colnames)
+    flag <- y_nonby_ukey_colnames %in% names(x)
+    y_nonby_ukey_colnames[flag] <- paste0(y_nonby_ukey_colnames[flag], suffix[[2L]])
+    result_ukey_colnames <- c(x_nonby_ukey_colnames, x_by_colnames, y_nonby_ukey_colnames)
+    # XXX ^ do we need all these? if relationship is -to-one, does that mean we just need ukeys from x, and can skip the by and y_nonby?
+    #
+    # maybe not... by val is only determined if we have full x key.
+    # Though -to-one means we could treat by as a ukey for y even if we
+    # already have another ukey for it.
+    #
+    # when can we exclude by from result ukey? if we have pre-existing
+    # x ukey and y ukey, we could just combine them...
     template <- new_keyed_df4(template, result_ukey_colnames)
     result <- new_keyed_df4(result, result_ukey_colnames)
   }
