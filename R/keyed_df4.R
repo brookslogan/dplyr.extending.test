@@ -482,8 +482,14 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   }
 
   x_ukey_nms <- ukey_colnames(x)
-  x_ukey_nm_needs_suffix <- (! x_ukey_nms %in% x_by) & x_ukey_nms %in% names(y)
-  x_ukey_nms[x_ukey_nm_needs_suffix] <- paste0(x_ukey_nms[x_ukey_nm_needs_suffix], suffix[[1L]])
+  if (all(x_ukey_nms %in% x_by)) {
+    x_maybe_multi <- FALSE
+  } else {
+    x_maybe_multi <- TRUE
+  }
+  xout_ukey_nms <- x_ukey_nms
+  x_ukey_nm_needs_suffix <- (! xout_ukey_nms %in% x_by) & xout_ukey_nms %in% names(y)
+  xout_ukey_nms[x_ukey_nm_needs_suffix] <- paste0(xout_ukey_nms[x_ukey_nm_needs_suffix], suffix[[1L]])
 
   if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one") ||
         multiple %in% c("first", "any", "last")) {
@@ -491,16 +497,23 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
     # value, and now `dplyr` will check that each "by value" does not
     # map to multiple rows in `y`.  So ukeys from `x` will be ukeys in
     # the result.
-    result_ukey_nms_else_null <- x_ukey_nms
+    result_ukey_nms_else_null <- xout_ukey_nms
+    y_maybe_multi <- FALSE
   } else {
     y_ukey_nms_else_null <- ukey_colnames_else_null(y)
     if (is.null(y_ukey_nms_else_null)) {
       result_ukey_nms_else_null <- NULL
+      y_maybe_multi <- TRUE
     } else {
-      y_nonby_ukey_nms <- vctrs::vec_set_difference(y_ukey_nms_else_null, y_by)
-      y_nonby_ukey_nm_needs_suffix <- y_nonby_ukey_nms %in% names(x)
-      y_nonby_ukey_nms[y_nonby_ukey_nm_needs_suffix] <- paste0(y_nonby_ukey_nms[y_nonby_ukey_nm_needs_suffix], suffix[[2L]])
-      result_ukey_nms_else_null <- c(x_ukey_nms, y_nonby_ukey_nms)
+      if (all(y_ukey_nms_else_null %in% y_by)) {
+        y_maybe_multi <- FALSE
+      } else {
+        y_maybe_multi <- TRUE
+      }
+      yres_nonby_ukey_nms <- vctrs::vec_set_difference(y_ukey_nms_else_null, y_by)
+      yres_nonby_ukey_nm_needs_suffix <- yres_nonby_ukey_nms %in% names(x)
+      yres_nonby_ukey_nms[yres_nonby_ukey_nm_needs_suffix] <- paste0(yres_nonby_ukey_nms[yres_nonby_ukey_nm_needs_suffix], suffix[[2L]])
+      result_ukey_nms_else_null <- c(xout_ukey_nms, yout_nonby_ukey_nms)
     }
   }
 
@@ -513,15 +526,17 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
   result <- NextMethod()
   template <- x
-  # XXX should we try to get updated ancestor attrs from `result`
-  # here, so we don't need descendent classes' `dplyr_reconstruct` to
-  # check `template` for their attrs and `result`/`data` for ancestor
-  # class attrs?  But how could we tell a descendent attribute from a
-  # nullable ancestor-class attribute that was nulled out during above
-  # partial reconstruction?  We might just end up corrupting the
-  # result's attributes; descendent classes' `dplyr_reconstruct` will
-  # just have to conform, or we need some sort of attr name registry.
   if (!is.null(result_ukey_nms_else_null)) {
+    # if (.Generic %in% c("left_join", "full_join") && y_maybe_multi) {
+    #   if (vctrs::vec_any_missing(result[yout_....])) {
+    #     cli_abort()
+    #   }
+    # }
+    # if (.Generic %in% c("right_join", "full_join") && x_maybe_multi) {
+    #   if (vctrs::vec_any_missing(result[xout_ukey_nms])) {
+    #     cli_abort()
+    #   }
+    # }
     template <- new_keyed_df4(template, result_ukey_nms_else_null)
     result <- new_keyed_df4(result, result_ukey_nms_else_null)
   }
