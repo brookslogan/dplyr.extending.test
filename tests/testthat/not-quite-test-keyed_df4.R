@@ -134,3 +134,14 @@ inner_join(
   new_keyed_df4(tibble(v = 1, vsynonym = "one", v2 = 5), "vsynonym"),
   by = "v"
 )
+
+# tbl1 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v1 = 1:100)
+# tbl2 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v2 = 1:100)
+# bench::mark(
+#   inner_join(tbl1, tbl2, by = c("g", "t")),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "one-to-one"),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "many-to-one"),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "one-to-many"),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "many-to-many"),
+#   min_time = 20
+# )
