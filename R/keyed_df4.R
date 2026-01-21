@@ -481,15 +481,11 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
     y_by <- unname(by)
   }
 
-  x_ukey_nms <- ukey_colnames(x)
-  if (all(x_ukey_nms %in% x_by)) {
-    x_maybe_multi <- FALSE
-  } else {
-    x_maybe_multi <- TRUE
-  }
-  xout_ukey_nms <- x_ukey_nms
-  x_ukey_nm_needs_suffix <- (! xout_ukey_nms %in% x_by) & xout_ukey_nms %in% names(y)
-  xout_ukey_nms[x_ukey_nm_needs_suffix] <- paste0(xout_ukey_nms[x_ukey_nm_needs_suffix], suffix[[1L]])
+  x_inp_ukey_nms <- ukey_colnames(x)
+  x_out_ukey_nms <- x_inp_ukey_nms
+  x_out_ukey_nm_needs_suffix <- (! x_out_ukey_nms %in% x_by) & x_out_ukey_nms %in% names(y)
+  x_out_ukey_nms[x_out_ukey_nm_needs_suffix] <- paste0(x_out_ukey_nms[x_out_ukey_nm_needs_suffix], suffix[[1L]])
+  x_out_nonby_ukey_nms <- vctrs::vec_set_difference(x_out_ukey_nms, x_by)
 
   if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one") ||
         multiple %in% c("first", "any", "last")) {
@@ -497,23 +493,18 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
     # value, and now `dplyr` will check that each "by value" does not
     # map to multiple rows in `y`.  So ukeys from `x` will be ukeys in
     # the result.
-    result_ukey_nms_else_null <- xout_ukey_nms
-    y_maybe_multi <- FALSE
+    result_ukey_nms_else_null <- x_out_ukey_nms
+    y_out_nonby_ukey_nms <- character()
   } else {
-    y_ukey_nms_else_null <- ukey_colnames_else_null(y)
-    if (is.null(y_ukey_nms_else_null)) {
+    y_inp_ukey_nms_else_null <- ukey_colnames_else_null(y)
+    if (is.null(y_inp_ukey_nms_else_null)) {
       result_ukey_nms_else_null <- NULL
-      y_maybe_multi <- TRUE
     } else {
-      if (all(y_ukey_nms_else_null %in% y_by)) {
-        y_maybe_multi <- FALSE
-      } else {
-        y_maybe_multi <- TRUE
-      }
-      yres_nonby_ukey_nms <- vctrs::vec_set_difference(y_ukey_nms_else_null, y_by)
-      yres_nonby_ukey_nm_needs_suffix <- yres_nonby_ukey_nms %in% names(x)
-      yres_nonby_ukey_nms[yres_nonby_ukey_nm_needs_suffix] <- paste0(yres_nonby_ukey_nms[yres_nonby_ukey_nm_needs_suffix], suffix[[2L]])
-      result_ukey_nms_else_null <- c(xout_ukey_nms, yout_nonby_ukey_nms)
+      y_inp_nonby_ukey_nms <- vctrs::vec_set_difference(y_inp_ukey_nms_else_null, y_by)
+      y_out_nonby_ukey_nms <- y_inp_nonby_ukey_nms
+      y_out_nonby_ukey_nm_needs_suffix <- y_out_nonby_ukey_nms %in% names(x)
+      y_out_nonby_ukey_nms[y_out_nonby_ukey_nm_needs_suffix] <- paste0(y_out_nonby_ukey_nms[y_out_nonby_ukey_nm_needs_suffix], suffix[[2L]])
+      result_ukey_nms_else_null <- c(x_out_ukey_nms, y_out_nonby_ukey_nms)
     }
   }
 
@@ -527,13 +518,41 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   result <- NextMethod()
   template <- x
   if (!is.null(result_ukey_nms_else_null)) {
-    # if (.Generic %in% c("left_join", "full_join") && y_maybe_multi) {
-    #   if (vctrs::vec_any_missing(result[yout_....])) {
-    #     cli_abort()
-    #   }
-    # }
+    if (.Generic %in% c("left_join", "full_join") && length(y_out_nonby_ukey_nms) != 0L) {
+      if (vctrs::vec_any_missing(result[y_out_nonby_ukey_nms])) {
+        cli_abort(c(
+          "Join may have introduced missing values for {?this/these} ukey column{?s}:
+           {y_out_nonby_ukey_nms}",
+          ">" = "Check that you didn't mean to include
+                 {cli::qty(y_out_nonby_ukey_nms)} {?this/these} column{?s} in `by`",
+          "i" = "Otherwise, either
+                 (a) the missing ukey value was already in `y` and the join simply propagated it, or
+                 (b) there was a `by` value in `x` that was not present in `y`.",
+          ">" = 'To make case (a) work while still checking for (b), move to
+                 {switch(.Generic, "left_join" = "inner_join(unmatched = c(<x setting>, \\"error\\"))",
+                                   "full_join" = "right_join(unmatched = \\"error\\"")}.'
+        ))
+      }
+    }
+    if (.Generic %in% c("right_join", "full_join") && length(y_out_nonby_ukey_nms) != 0L) {
+      if (vctrs::vec_any_missing(result[y_out_nonby_ukey_nms])) {
+        cli_abort(c(
+          "Join may have introduced missing values for {?this/these} ukey column{?s}:
+           {x_out_nonby_ukey_nms}",
+          ">" = "Check that you didn't mean to include
+                 {cli::qty(x_out_nonby_ukey_nms)} {?this/these} column{?s} in `by`",
+          "i" = "Otherwise, either
+                 (a) the missing ukey value was already in `x` and the join simply propagated it, or
+                 (b) there was a `by` value in `y` that was not present in `x`.",
+          ">" = 'To make case (a) work while still checking for (b), move to
+                 {switch(.Generic, "right_join" = "inner_join(unmatched = c(\\"error\\", <y setting>))",
+                                   "full_join" = "right_join(unmatched = \\"error\\"")}.'
+        ))
+      }
+    }
+    # TODO finish
     # if (.Generic %in% c("right_join", "full_join") && x_maybe_multi) {
-    #   if (vctrs::vec_any_missing(result[xout_ukey_nms])) {
+    #   if (vctrs::vec_any_missing(result[x_out_ukey_nms])) {
     #     cli_abort()
     #   }
     # }
@@ -546,8 +565,19 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   result
 }
 
+#' @importFrom dplyr left_join
+#' @export
+left_join.keyed_df4 <- inner_join.keyed_df4
+
+#' @importFrom dplyr right_join
+#' @export
+right_join.keyed_df4 <- inner_join.keyed_df4
+
+#' @importFrom dplyr full_join
+#' @export
+full_join.keyed_df4 <- inner_join.keyed_df4
+
 # TODO other joins
-# * for other mutate-joins, if by-key b can be missing in x/y, then x/y must not be allowed to have additional key cols other than the by cols.
 
 # TODO nest and unnest, ...
 
