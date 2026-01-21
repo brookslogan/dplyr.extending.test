@@ -474,26 +474,38 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
     by <- vctrs::vec_set_intersect(names(x), names(y))
   }
   if (inherits(by, "dplyr_join_by")) {
-    x_by_colnames <- by$x
-    y_by_colnames <- by$y
+    x_by <- by$x
+    y_by <- by$y
   } else {
-    x_by_colnames <- names(by) %||% by
-    y_by_colnames <- unname(by)
+    x_by <- names(by) %||% by
+    y_by <- unname(by)
   }
-  x_ukey_colnames <- ukey_colnames(x)
-  x_nonby_ukey_colnames <- vctrs::vec_set_difference(x_ukey_colnames, x_by_colnames)
-  y_ukey_colnames_else_null <- ukey_colnames_else_null(y)
-  if (is.null(y_ukey_colnames_else_null)) {
-    # Often, `y_by_colnames` act as a ukey for `y`.  Either
-    # `relationship` should guarantee that this is the case, or we
-    # should check if it's valid.
-    if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one")) {
-      y_ukey_colnames_else_null <- y_by_colnames
-    } else if (isTRUE(df_check_kdf4_compatible(y, y_by_colnames))) {
-      y_ukey_colnames_else_null <- y_by_colnames
-    } # else we don't know a "reasonable" ukey for `y`
-  } # TODO else change `relationship` for efficiency if we do know the ukey?
-  #
+
+  x_ukey_nms <- ukey_colnames(x)
+  x_ukey_nm_needs_suffix <- (! x_ukey_nms %in% x_by) & x_ukey_nms %in% names(y)
+  x_ukey_nms[x_ukey_nm_needs_suffix] <- paste0(x_ukey_nms[x_ukey_nm_needs_suffix], suffix[[1L]])
+
+  # TODO `relationship` optimizations if possible
+  if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one")) {
+    # Potentially shorten the output ukey:
+    #
+    # We already knew that each x ukey value maps to a single `by`
+    # value, and now `dplyr` will check that each "by value" does not
+    # map to multiple rows in `y`.  So ukeys from `x` will be ukeys in
+    # the result.
+    result_ukey_nms_else_null <- x_ukey_nms
+  } else {
+    y_ukey_nms_else_null <- ukey_colnames_else_null(y)
+    if (is.null(y_ukey_nms_else_null)) {
+      result_ukey_nms_else_null <- NULL
+    } else {
+      y_nonby_ukey_nms <- vctrs::vec_set_difference(y_ukey_nms_else_null, y_by)
+      y_nonby_ukey_nm_needs_suffix <- y_nonby_ukey_nms %in% names(x)
+      y_nonby_ukey_nms[y_nonby_ukey_nm_needs_suffix] <- paste0(y_nonby_ukey_nms[y_nonby_ukey_nm_needs_suffix], suffix[[2L]])
+      result_ukey_nms_else_null <- c(x_ukey_nms, y_nonby_ukey_nms)
+    }
+  }
+
   # Avoid unnecessary ukey validation from NextMethod()'s
   # dplyr_reconstruct by converting to superclass:
   orig_x <- x
@@ -511,24 +523,9 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   # partial reconstruction?  We might just end up corrupting the
   # result's attributes; descendent classes' `dplyr_reconstruct` will
   # just have to conform, or we need some sort of attr name registry.
-  if (!is.null(y_ukey_colnames_else_null)) {
-    x_nonby_ukey_colnames <- vctrs::vec_set_difference(x_ukey_colnames, x_by_colnames)
-    flag <- x_nonby_ukey_colnames %in% names(y)
-    x_nonby_ukey_colnames[flag] <- paste0(x_nonby_ukey_colnames[flag], suffix[[1L]])
-    y_nonby_ukey_colnames <- vctrs::vec_set_difference(y_ukey_colnames_else_null, y_by_colnames)
-    flag <- y_nonby_ukey_colnames %in% names(x)
-    y_nonby_ukey_colnames[flag] <- paste0(y_nonby_ukey_colnames[flag], suffix[[2L]])
-    result_ukey_colnames <- c(x_nonby_ukey_colnames, x_by_colnames, y_nonby_ukey_colnames)
-    # XXX ^ do we need all these? if relationship is -to-one, does that mean we just need ukeys from x, and can skip the by and y_nonby?
-    #
-    # maybe not... by val is only determined if we have full x key.
-    # Though -to-one means we could treat by as a ukey for y even if we
-    # already have another ukey for it.
-    #
-    # when can we exclude by from result ukey? if we have pre-existing
-    # x ukey and y ukey, we could just combine them...
-    template <- new_keyed_df4(template, result_ukey_colnames)
-    result <- new_keyed_df4(result, result_ukey_colnames)
+  if (!is.null(result_ukey_nms_else_null)) {
+    template <- new_keyed_df4(template, result_ukey_nms_else_null)
+    result <- new_keyed_df4(result, result_ukey_nms_else_null)
   }
   template <- reconstruct_as_is(template)
   class(template) <- c(x_subclass, class(template))

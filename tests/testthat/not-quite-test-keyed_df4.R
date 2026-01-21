@@ -121,3 +121,16 @@ inner_join(
   by = "u",
   relationship = "many-to-many"
 )
+
+inner_join(
+  new_keyed_df4(tibble(k = 11:14, v = 1), "k"),
+  new_keyed_df4(tibble(v = 1, vsynonym = "one", v2 = 5), "vsynonym"),
+  by = "v",
+  relationship = "many-to-one"
+)
+
+inner_join(
+  new_keyed_df4(tibble(k = 11:14, v = 1), "k"),
+  new_keyed_df4(tibble(v = 1, vsynonym = "one", v2 = 5), "vsynonym"),
+  by = "v"
+)
