@@ -550,12 +550,6 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
         ))
       }
     }
-    # TODO finish
-    # if (.Generic %in% c("right_join", "full_join") && x_maybe_multi) {
-    #   if (vctrs::vec_any_missing(result[x_out_ukey_nms])) {
-    #     cli_abort()
-    #   }
-    # }
     template <- new_keyed_df4(template, result_ukey_nms_else_null)
     result <- new_keyed_df4(result, result_ukey_nms_else_null)
   }
@@ -576,6 +570,34 @@ right_join.keyed_df4 <- inner_join.keyed_df4
 #' @importFrom dplyr full_join
 #' @export
 full_join.keyed_df4 <- inner_join.keyed_df4
+
+#' @importFrom dplyr cross_join
+#' @export
+cross_join.keyed_df4 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")) {
+  orig_x <- x
+  x_class <- class(x)
+  x_self_ind <- match("keyed_df4", x_class)
+  x_subclass <- x_class[seq_len(x_self_ind - 1L)]
+  class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
+  result <- NextMethod()
+  y_ukey_nms_else_null <- ukey_colnames_else_null(y)
+  template <- x
+  if (!is.null(y_ukey_nms_else_null)) {
+    x_out_ukey_nms <- ukey_colnames(orig_x)
+    x_out_ukey_nm_needs_suffix <- x_out_ukey_nms %in% names(y)
+    x_out_ukey_nms[x_out_ukey_nm_needs_suffix] <- paste0(x_out_ukey_nms[x_out_ukey_nm_needs_suffix], suffix[[1L]])
+    y_out_ukey_nms <- ukey_colnames(y)
+    y_out_ukey_nm_needs_suffix <- y_out_ukey_nms %in% names(orig_x)
+    y_out_ukey_nms[y_out_ukey_nm_needs_suffix] <- paste0(y_out_ukey_nms[y_out_ukey_nm_needs_suffix], suffix[[2L]])
+    result_ukey_nms <- c(x_out_ukey_nms, y_out_ukey_nms)
+    template <- new_keyed_df4(template, result_ukey_nms)
+    result <- new_keyed_df4(result, result_ukey_nms)
+  }
+  template <- reconstruct_as_is(template)
+  class(template) <- c(x_subclass, class(template))
+  result <- partial_reconstruct(result, template)
+  result
+}
 
 # TODO other joins
 
