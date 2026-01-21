@@ -468,7 +468,7 @@ group_data.keyed_df4 <- function(.data) {
 
 #' @importFrom dplyr inner_join
 #' @export
-inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., relationship = NULL) {
+inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., multiple = "all", relationship = NULL) {
   if (is.null(by)) {
     cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
     by <- vctrs::vec_set_intersect(names(x), names(y))
@@ -485,21 +485,13 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   x_ukey_nm_needs_suffix <- (! x_ukey_nms %in% x_by) & x_ukey_nms %in% names(y)
   x_ukey_nms[x_ukey_nm_needs_suffix] <- paste0(x_ukey_nms[x_ukey_nm_needs_suffix], suffix[[1L]])
 
-  # if (!is.null(relationship) && relationship %in% c("one-to-one", "one-to-many")) {
-  #   if (all(x_ukey_nms %in% x_by)) {
-  #     relationship <- sub("one-", "many-", relationship)
-  #   } # else warn?
-  # }
-
-  if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one")) {
+  if (!is.null(relationship) && relationship %in% c("one-to-one", "many-to-one") ||
+        multiple %in% c("first", "any", "last")) {
     # We already knew that each x ukey value maps to a single `by`
     # value, and now `dplyr` will check that each "by value" does not
     # map to multiple rows in `y`.  So ukeys from `x` will be ukeys in
     # the result.
     result_ukey_nms_else_null <- x_ukey_nms
-    # if (all(y_ukey_nms %in% y_by)) {
-    #   relationship <- sub("-one", "-many", relationship)
-    # }
   } else {
     y_ukey_nms_else_null <- ukey_colnames_else_null(y)
     if (is.null(y_ukey_nms_else_null)) {

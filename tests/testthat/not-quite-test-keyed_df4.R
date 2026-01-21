@@ -135,6 +135,13 @@ inner_join(
   by = "v"
 )
 
+inner_join(
+  new_keyed_df4(tibble(k = 1), "k"),
+  tibble(k = 1, v = 1:5),
+  by = "k",
+  multiple = "first"
+)
+
 # tbl1 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v1 = 1:100)
 # tbl2 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v2 = 1:100)
 # bench::mark(
