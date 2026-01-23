@@ -35,3 +35,4 @@ partial_reconstruct <- function(data, template) {
   # TODO notes on which we should use for which attrs
   UseMethod("dplyr_reconstruct", template)
 }
+# XXX might have problems if a `dplyr_reconstruct` impl manually forwards to `dplyr_reconstruct`?

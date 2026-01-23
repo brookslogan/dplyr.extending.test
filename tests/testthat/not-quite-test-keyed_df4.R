@@ -142,6 +142,17 @@ inner_join(
   multiple = "first"
 )
 
+# tbl1 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v1 = 1:100)
+# tbl2 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v2 = 1:100)
+# bench::mark(
+#   inner_join(tbl1, tbl2, by = c("g", "t")),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "one-to-one"),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "many-to-one"),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "one-to-many"),
+#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "many-to-many"),
+#   min_time = 20
+# )
+
 left_join(
   new_keyed_df4(tibble(g = 1, t = 1:5), c("g", "t")),
   new_keyed_df4(tibble(g = 2, t = 1:5), c("g", "t")),
@@ -153,13 +164,10 @@ cross_join(
   new_keyed_df4(tibble(g = 2, v = 1:5), c("g", "t"))
 )
 
-# tbl1 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v1 = 1:100)
-# tbl2 <- tibble(g = c(rep(1, 50), rep(2, 50)), t = c(1:50, 1:50), v2 = 1:100)
-# bench::mark(
-#   inner_join(tbl1, tbl2, by = c("g", "t")),
-#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "one-to-one"),
-#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "many-to-one"),
-#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "one-to-many"),
-#   inner_join(tbl1, tbl2, by = c("g", "t"), relationship = "many-to-many"),
-#   min_time = 20
-# )
+nest_join(
+  new_keyed_df4(tibble(g = c(1,2)), "g"),
+  new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t")),
+  by = "g",
+  name = "y"
+)$y
+# ^ TODO fix key

@@ -599,6 +599,14 @@ cross_join.keyed_df4 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")
   result
 }
 
+# #' @importFrom dplyr nest_join
+# #' @export
+# nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name = NULL, ...) {
+#   # TODO we need generics to handle other types of `y`
+#   # appropriately... or do we&others just hide context keys when
+#   # selecting away some ukeys rather than decaying, so that we can just make the default work?
+# }
+
 # TODO other joins
 
 # TODO nest and unnest, ...
