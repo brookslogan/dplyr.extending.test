@@ -292,6 +292,8 @@ dplyr_col_modify.keyed_df4 <- function(data, cols) {
 
 #' @export
 dplyr_reconstruct.keyed_df4 <- function(data, template) {
+  # XXX should we be using intersection of template ukey colnames and
+  # data colnames here?  "partial decaying" reconstruction
   df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(NextMethod()), ukey_colnames(template))
   # XXX may have old subclass attrs sticking around, but maybe not
   # guaranteed... do we need to guarantee or does subclass need to
@@ -472,8 +474,8 @@ group_data.keyed_df4 <- function(.data) {
 #' @export
 inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., multiple = "all", relationship = NULL) {
   if (is.null(by)) {
-    cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
     by <- vctrs::vec_set_intersect(names(x), names(y))
+    cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
   }
   if (inherits(by, "dplyr_join_by")) {
     x_by <- by$x
@@ -517,7 +519,7 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   x_self_ind <- match("keyed_df4", x_class)
   x_subclass <- x_class[seq_len(x_self_ind - 1L)]
   class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
-  result <- NextMethod()
+  result <- NextMethod(by = by) # must manually pass optional arg "override"
   template <- x
   if (!is.null(result_ukey_nms_else_null)) {
     if (.Generic %in% c("left_join", "full_join") && length(y_out_nonby_ukey_nms) != 0L) {
@@ -601,15 +603,54 @@ cross_join.keyed_df4 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")
   result
 }
 
-# #' @importFrom dplyr nest_join
-# #' @export
-# nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name = NULL, ...) {
-#   # TODO we need generics to handle other types of `y`
-#   # appropriately... or do we&others just hide context keys when
-#   # selecting away some ukeys rather than decaying, so that we can just make the default work?
-# }
-
-# TODO other joins
+#' @importFrom dplyr nest_join
+#' @export
+nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name = NULL, ...) {
+  if (is.null(name)) {
+    # quickly apply this default, before anything potentially forces
+    # `y` and mess up `enexpr` result
+    name <- rlang::as_label(rlang::enexpr(y))
+  }
+  if (is.null(by)) {
+    by <- vctrs::vec_set_intersect(names(x), names(y))
+    cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
+  }
+  if (is.null(keep)) {
+    keep <- FALSE
+  } else {
+    if (!rlang::is_bool(keep)) {
+      cli_abort("`keep` must be `TRUE`, `FALSE`, or `NULL`, not {rlang::obj_type_friendly(keep)}")
+    }
+  }
+  if (keep) {
+    y_out_elt_nms <- names(y)
+  } else {
+    if (inherits(by, "dplyr_join_by")) {
+      y_by <- by$y
+    } else {
+      y_by <- unname(by)
+    }
+    y_out_elt_nms <- vctrs::vec_set_difference(names(y), y_by)
+  }
+  # ?dplyr_extending: output column elements will be reconstructed
+  # from tibbles with `y` as the template.  But element ukey cols
+  # probably should be a strict subset of `y`'s ukey cols, and
+  # dplyr_reconstruct methods may not support "partial decaying" of
+  # the template ukey to something the data can fit.  We can't simply
+  # transform `y` by removing these cols as class might decay + they
+  # are the `by` cols necessary for the join.  But we can form our own
+  # template from y[0,], which probably shouldn't decay from removing
+  # these columns.  However, this will violate expectations of classes
+  # that need the original rows from `y` to perform reconstruction.
+  # Potential workarounds seem messy.  Might just hope for dplyr to
+  # add and use a chop_extract or nest generic rather than current
+  # reconstruction approach.
+  y_out_elt_template <- dplyr_row_slice(y, integer())[y_out_elt_nms]
+  y <- as_tibble(y)
+  result <- NextMethod(by = by, keep = keep, name = name) # must manually pass optional arg "override", esp. since `y` forcing breaks `name` default
+  result[[name]] <- lapply(result[[name]], dplyr_reconstruct, y_out_elt_template)
+  result
+}
 
 # TODO nest and unnest, ...
 

@@ -159,6 +159,11 @@ left_join(
   by = "g"
 )
 
+left_join(
+  new_keyed_df4(tibble(g = 1, t = 1:5), c("g", "t")),
+  new_keyed_df4(tibble(g = 2, t = 1:5), c("g", "t"))
+)
+
 cross_join(
   new_keyed_df4(tibble(g = 1, t = 1:5), c("g", "t")),
   new_keyed_df4(tibble(g = 2, v = 1:5), c("g", "t"))
@@ -170,4 +175,18 @@ nest_join(
   by = "g",
   name = "y"
 )$y
-# ^ TODO fix key
+
+my_y <- new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t"))
+nest_join(
+  new_keyed_df4(tibble(g = c(1,2)), "g"),
+  my_y,
+  by = "g"
+)$my_y
+
+my_y <- new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t"))
+nest_join(
+  new_keyed_df4(tibble(g = c(1,2)), "g"),
+  my_y,
+  by = "g",
+  keep = TRUE
+)$my_y
