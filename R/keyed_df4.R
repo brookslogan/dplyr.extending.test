@@ -260,6 +260,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 #' @export
 `$<-.keyed_df4` <- function(x, name, value) {
   x[name] <- list(value)
+  x
 }
 
 #' @export
@@ -267,6 +268,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   # XXX documentation for args of `[[<-` being limited to (x, i, value)
   # doesn't match what we can put into data.frame `[[<-` methods...
   x[i] <- list(value)
+  x
 }
 
 
