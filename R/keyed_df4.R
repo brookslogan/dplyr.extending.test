@@ -13,6 +13,9 @@
 new_keyed_df4 <- function(df, ukey_colnames) {
   if (!inherits(df, "data.frame")) {
     # TODO go back to requiring tibble rather than df?
+    #
+    # XXX or try to allow even more? requires more than just
+    # dplyr_extending, but having to do significant work beyond anyway
     cli::cli_abort("`df` must be a `data.frame`")
   }
   if (inherits(df, "keyed_df4")) {
@@ -685,18 +688,32 @@ nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
 # and canonical ordering... but don't have to; can just require
 # matching order
 
-# TODO group_by
-
-# TODO pivot functions
-
-# TODO separate unit & time ukeys & aggregation mechanisms...
-# * index_by approach?
-# * auto-mark detectably-derived cols purely from unit or purely from time + group_by & .by doing something similar?
-
-# TODO ephemeral role-specifying wrappers for inset operations?
-
 # group_data extension rather than attr "groups" modifications may
 # make inheritance make more sense as structure is only added rather
 # than changed.  though duplicate processing on re-dispatch still
 # applies.  however, decorator approach still seems like it would be
 # more flexible if the structure assumptions were ever removed.
+
+
+
+
+
+
+
+# TODO removed-ukey-col tracking? or chop_extract in group_split
+#
+# TODO nest, unnest if removed-ukey-col doesn't auto
+#
+# TODO context keys
+
+# TODO pivot functions
+
+# TODO .by=, by= args...
+
+# TODO time key mgmt
+#
+# TODO ephemeral role-specifying wrappers for inset operations?
+#
+# TODO separate unit & time ukeys & aggregation mechanisms...
+# * index_by approach?
+# * auto-mark detectably-derived cols purely from unit or purely from time + group_by & .by doing something similar?

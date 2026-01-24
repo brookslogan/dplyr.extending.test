@@ -1,5 +1,6 @@
 
 library(dplyr)
+library(tidyr)
 library(magrittr)
 
 toy_tbl1 <- tibble(u = c(1,1,1,2,2), t = c(1:3,1:2), v = 1:5)
@@ -190,3 +191,6 @@ nest_join(
   by = "g",
   keep = TRUE
 )$my_y
+
+
+nest(new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t")), data = g)
