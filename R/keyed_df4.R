@@ -708,6 +708,8 @@ nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
 
 # TODO pivot functions
 
+# TODO complete function, separate & unite functions, ...
+
 # TODO .by=, by= args...
 
 # TODO time key mgmt
