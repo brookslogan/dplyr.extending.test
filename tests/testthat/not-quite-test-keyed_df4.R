@@ -198,6 +198,13 @@ nest_join(
   name = "y"
 )$y
 
+# FIXME
+new_keyed_df4(tibble(g = c(1,1,2,2,3,3), t = c(1,2,1,2,1,2)), c("g", "t")) %>%
+  group_by(g) %>%
+  group_split()
+
+# FIXME
 new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>% complete(g, t)
 
+# FIXME
 nest(new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t")), data = g)
