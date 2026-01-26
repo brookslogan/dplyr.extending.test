@@ -192,6 +192,12 @@ nest_join(
   keep = TRUE
 )$my_y
 
+nest_join(
+  tibble(g = c(1,2)),
+  new_keyed_df4(tibble(g = c(1,1,2,2,3,3), t = c(1,2,1,2,1,2)), c("g", "t")),
+  name = "y"
+)$y
+
 new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>% complete(g, t)
 
 nest(new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t")), data = g)

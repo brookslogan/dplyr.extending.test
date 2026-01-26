@@ -295,9 +295,8 @@ dplyr_col_modify.keyed_df4 <- function(data, cols) {
 
 #' @export
 dplyr_reconstruct.keyed_df4 <- function(data, template) {
-  # XXX should we be using intersection of template ukey colnames and
-  # data colnames here?  "partial decaying" reconstruction
-  df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(NextMethod()), ukey_colnames(template))
+  maybe_result_ukey_colnames <- vctrs::vec_set_intersect(names(data), ukey_colnames(template))
+  df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(NextMethod()), maybe_result_ukey_colnames)
   # XXX may have old subclass attrs sticking around, but maybe not
   # guaranteed... do we need to guarantee or does subclass need to
   # guarantee correct post-processing?

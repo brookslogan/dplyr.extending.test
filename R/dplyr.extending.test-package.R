@@ -10,5 +10,6 @@
 #' @importFrom rlang is_missing
 #' @importFrom rlang is_na
 #' @importFrom rlang is_vector
+#' @importFrom vctrs vec_cast
 ## usethis namespace: end
 NULL
