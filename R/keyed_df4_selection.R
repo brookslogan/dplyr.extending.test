@@ -1,12 +1,16 @@
 
 
-new_keyed_df4_selection <- function(selected_df, unselected_ukey_cols_df) {
+new_keyed_df4_selection <- function(selected_df, selected_ukey_colnames, unselected_ukey_cols_df) {
   if (!inherits(selected_df, "data.frame")) {
     cli_abort("`selected_df` must be a data frame.")
   }
   if (inherits(selected_df, "keyed_df4_selection")) {
     cli_abort("`selected_df` is already a keyed_df4_selection; extra logic may be required.")
   }
+  if (inherits(selected_df, "keyed_df4")) {
+    cli_abort("`selected_df` is a keyed_df4; we should probably just be a kdf4 xor a selection.")
+  }
+  checkmate::assert_subset(selected_ukey_colnames, names(selected_df))
   if (!inherits(unselected_ukey_cols_df, "data.frame")) {
     cli_abort("`unselected_ukey_cols_df` must be a data frame.")
   }
@@ -14,6 +18,7 @@ new_keyed_df4_selection <- function(selected_df, unselected_ukey_cols_df) {
     cli_abort("`selected_df` and `unselected_ukey_cols_df` must have matching `nrow`.")
   }
   class(selected_df) <- c("keyed_df4_selection", class(selected_df))
+  attr(selected_df, "dplyr.extending.test:::selected_ukey_colnames") <- selected_ukey_colnames
   attr(selected_df, "dplyr.extending.test:::unselected_ukey_cols_df") <- unselected_ukey_cols_df
   selected_df
 }
@@ -60,8 +65,9 @@ df_ensure_not_kdf4s <- function(df) {
 #' @export
 print.keyed_df4_selection <- function(x, ...) {
   # TODO pillar stuff, cli toString alternative
+  selected_ukey_colnames <- attr(x, "dplyr.extending.test:::selected_ukey_colnames")
   unselected_ukey_colnames <- names(attr(x, "dplyr.extending.test:::unselected_ukey_cols_df"))
-  print(glue::glue('# keyed_df4_selection[without {toString(unselected_ukey_colnames)}] of:\n'))
+  print(glue::glue('# keyed_df4_selection[{toString(selected_ukey_colnames)} | {toString(unselected_ukey_colnames)}] of:\n'))
   NextMethod()
 }
 
@@ -93,6 +99,13 @@ print.keyed_df4_selection <- function(x, ...) {
   # # but the attr stuff for us?
 
   result <- NextMethod()
+
+  # FIXME this is probably buggy on duplicate is... need logic from
+  # keyed_df4.  Really, a keyed_df4 can also be seen as a selection,
+  # just with no unselected ukey cols.  Could move logic there.
+  # Alternatively, it may be better to go for a non-dplyr_extending
+  # wrapper approach if want column selections from arbitrary classes
+  # to be handled appropriately.
 
   call_was_1d <- nargs() == 2L && !missing(i)
   if (call_was_1d) {

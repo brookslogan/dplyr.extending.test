@@ -168,7 +168,10 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   if (!is.character(j)) {
     j <- names(original)[j]
   }
-  dropped_ukey_colnames <- vctrs::vec_set_difference(ukey_colnames(original), j)
+  original_ukey_colnames <- ukey_colnames(original)
+  ukey_col_included <- original_ukey_colnames %in% j
+  selected_ukey_colnames <- original_ukey_colnames[ukey_col_included]
+  dropped_ukey_colnames <- original_ukey_colnames[!ukey_col_included]
   if (length(dropped_ukey_colnames) == 0L) {
     return(df_ensure_structural_keyed_df4(extraction, ukey_colnames(original)))
   }
@@ -183,7 +186,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
     # # technically we could still have unique new-ukey values here,
     # # but it seems like a violation anyway
     # df_ensure_not_kdf4(extraction)
-    new_keyed_df4_selection(df_ensure_not_kdf4(extraction), dropped_ukey_col_values)
+    new_keyed_df4_selection(df_ensure_not_kdf4(extraction), selected_ukey_colnames, dropped_ukey_col_values)
   } else {
     df_ensure_structural_keyed_df4(extraction, vctrs::vec_set_difference(ukey_colnames(original), dropped_ukey_colnames))
   }
