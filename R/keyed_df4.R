@@ -180,9 +180,10 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   # TODO vs. vctrs::vec_unique_count:
   if (vctrs::vec_size(dropped_ukey_col_values) != 0L &&
         !all(vctrs::vec_equal(dropped_ukey_col_values, dropped_ukey_col_values[1,]))) {
-    # technically we could still have unique new-ukey values here,
-    # but it seems like a violation anyway
-    df_ensure_not_kdf4(extraction)
+    # # technically we could still have unique new-ukey values here,
+    # # but it seems like a violation anyway
+    # df_ensure_not_kdf4(extraction)
+    new_keyed_df4_selection(df_ensure_not_kdf4(extraction), dropped_ukey_col_values)
   } else {
     df_ensure_structural_keyed_df4(extraction, vctrs::vec_set_difference(ukey_colnames(original), dropped_ukey_colnames))
   }
@@ -718,3 +719,9 @@ nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
 # TODO separate unit & time ukeys & aggregation mechanisms...
 # * index_by approach?
 # * auto-mark detectably-derived cols purely from unit or purely from time + group_by & .by doing something similar?
+
+# TODO check `[` does not introduce duplicate colnames, at least for ukey cols
+
+# TODO check for ukey_colnames redispatching all over the place... should not redispatch without converting to self first.
+
+# TODO pillar/tbl/whatever methods needed to get a better header
