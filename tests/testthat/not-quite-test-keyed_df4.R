@@ -212,13 +212,28 @@ nest_join(
 # kdf4s[,2] # FIXME... we needed to track the original ukey; can't delegate that to the selection because it might decay
 
 
-# FIXME list_of has the wrong ptype plus the entries are plain tibbles...
 new_keyed_df4(tibble(g = c(1,1,2,2,3,3), t = c(1,2,1,2,1,2)), c("g", "t")) %>%
   group_by(g) %>%
   group_split()
 
+new_keyed_df4(tibble(g = c(1,1,2,2,3,3), t = c(1,2,1,2,1,2)), c("g", "t")) %>%
+  group_by(g) %>%
+  group_split(.keep = FALSE)
+
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
+  expand(g, t)
+
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
+  group_by(g) %>%
+  expand(t)
+
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
+  complete(g, t)
+
 # FIXME
-new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>% complete(g, t)
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
+  group_by(g) %>%
+  complete(t = 1:2)
 
 # FIXME
 nest(new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t")), data = g)

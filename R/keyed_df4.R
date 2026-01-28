@@ -463,23 +463,64 @@ vec_restore.keyed_df4 <- function(x, to, ...) {
   as_keyed_df4(vec_restore(kdf4_super(x), kdf4_super(to)), ukey_colnames(to))
 }
 
-#' @importFrom dplyr group_data
+#' @importFrom dplyr group_by
 #' @export
 group_by.keyed_df4 <- function(.data, ...) {
   df_ensure_structural_keyed_df4(NextMethod(), ukey_colnames(.data))
 }
 
-# TODO rowwise
+#' @importFrom dplyr rowwise
+#' @export
+rowwise.keyed_df4 <- function(.data, ...) {
+  df_ensure_structural_keyed_df4(NextMethod(), ukey_colnames(.data))
+}
+
+#' @importFrom dplyr ungroup
+#' @export
+ungroup.keyed_df4 <- function(.data, ...) {
+  df_ensure_structural_keyed_df4(NextMethod(), ukey_colnames(.data))
+}
 
 #' @importFrom dplyr group_data
 #' @export
 group_data.keyed_df4 <- function(.data) {
   result <- NextMethod()
-  .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
+  if (inherits(.data, "rowwise_df")) {
+    .data_group_vars <- ukey_colnames(.data)
+  } else {
+    .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
+  }
   new_keyed_df4(result, .data_group_vars)
 }
 
-# TODO group_split
+#' @export
+group_split.keyed_df4 <- function(.tbl, ..., .keep = TRUE) {
+  # XXX this doesn't really respect superclasses; perhaps a ukey check
+  # suspension and correction would be better.
+  if (rlang::dots_n(...) != 0L) {
+    if (inherits(.tbl, "grouped_df")) {
+      cli_abort('grouping with `...` is not allowed when `.tbl` is (already) a "grouped_df"')
+    } else {
+      .tbl <- group_by(.tbl, ...)
+    }
+  }
+  is <- group_rows(.tbl)
+  if (.keep) {
+    j <- seq_along(.tbl)
+  } else {
+    j <- which(! names(.tbl) %in% group_vars(.tbl))
+  }
+  # TODO optimize away checks?
+  chop_extract(ungroup(.tbl), is, j)
+
+  # XXX this sort of matches dplyr besides allowing chop_extract in a
+  # different way, but should we be doing more based on group_data to
+  # adjust the key?
+
+  # TODO also make this list_of... if possible.  Might require suspend_class / other extensible approach.
+
+  # TODO minimize key?  vec_set_difference with group vars even if keeping?
+}
 
 #' @importFrom dplyr inner_join
 #' @export
@@ -662,13 +703,45 @@ nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
   # ?dplyr_extending implies need to support. Or (b) non-messy?: ukey
   # check suspension generics.  Or (c) non-messy? tacking on a class
   # with information about the nesting that can be used during
-  # reconstruction.
+  # reconstruction.  Or (d) rethink the suspended-class approach as it
+  # might be useful for other nesting-like operations.
   y_out_elt_template <- dplyr_row_slice(y, integer())[y_out_elt_nms]
   y <- as_tibble(y)
   result <- NextMethod(by = by, keep = keep, name = name) # must manually pass optional arg "override", esp. since `y` forcing breaks `name` default
   result[[name]] <- lapply(result[[name]], dplyr_reconstruct, y_out_elt_template)
   result
 }
+
+last_expand_names <- rlang::new_environment(list(value = NULL))
+
+#' @importFrom tidyr expand
+#' @export
+expand.keyed_df4 <- function(data, ..., .name_repair = "check_unique") {
+  # With dplyr >= 1.1, this seems to follow a wrapper/packed-alike
+  # approach, not expecting subclasses and constructing without
+  # subclasses.  Let's follow that.
+  data <- kdf4_super(data)
+  result <- NextMethod()
+  result <- new_keyed_df4(result, names(result))
+  last_expand_names$value <- names(result)
+  result
+}
+
+#' @importFrom tidyr complete
+#' @export
+complete.keyed_df4 <- function(data, ..., fill = list(), explicit = TRUE) {
+  # We almost get the right result from `complete` using `expand`, but
+  # tidyr then strips subclasses.
+  last_expand_names$value <- NULL
+  result <- NextMethod()
+  if (is.null(last_expand_names)) {
+    cli::cli_inform("`complete.keyed_df4` encountered incompatibility with `tidyr`; returning non-keyed_df4 result.  Please report this issue upstream.")
+    return (result)
+  } else {
+    new_keyed_df4(result, last_expand_names$value)
+  }
+}
+
 
 # TODO nest and unnest, ...
 
