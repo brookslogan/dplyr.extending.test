@@ -86,6 +86,8 @@ df_ensure_not_kdf5 <- function(df) {
 
 #' @export
 ukey_colnames_else_null.keyed_df5 <- function(x) {
+  # TODO if we have no unselected cols then we have ukey; else not.
+  # Unless we missed unselected -> context simplifications...
   attr(x, "dplyr.extending.test::ukey_colnames")
 }
 
@@ -735,19 +737,7 @@ nest_join.keyed_df5 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
     }
     y_out_elt_nms <- vctrs::vec_set_difference(names(y), y_by)
   }
-  # ?dplyr_extending: output column elements will be reconstructed
-  # from tibbles with `y` as the template.  But element ukey cols
-  # probably should be a strict subset of `y`'s ukey cols, and
-  # dplyr_reconstruct methods may not support "partial decaying" of
-  # the template ukey to something the data can fit.  We can't simply
-  # transform `y` by removing these cols as class might decay + they
-  # are the `by` cols necessary for the join.  But we can form our own
-  # template from y[0,], which probably shouldn't decay from removing
-  # these columns.  However, this will violate expectations of classes
-  # that need the original rows from `y` to perform reconstruction.
-  # Potential workarounds seem messy.  Might just hope for dplyr to
-  # add and use a chop_extract or nest generic rather than current
-  # reconstruction approach.
+  # TODO see/migrate notes from keyed_df4
   y_out_elt_template <- dplyr_row_slice(y, integer())[y_out_elt_nms]
   y <- as_tibble(y)
   result <- NextMethod(by = by, keep = keep, name = name) # must manually pass optional arg "override", esp. since `y` forcing breaks `name` default

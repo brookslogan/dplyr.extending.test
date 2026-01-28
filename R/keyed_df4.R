@@ -652,6 +652,13 @@ nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
   # Potential workarounds seem messy.  Might just hope for dplyr to
   # add and use a chop_extract or nest generic rather than current
   # reconstruction approach.
+  #
+  # TODO Consider the following: (a) match dplyr and let it
+  # reconstruct; assume partial decay available since that's what
+  # ?dplyr_extending implies need to support. Or (b) non-messy?: ukey
+  # check suspension generics.  Or (c) non-messy? tacking on a class
+  # with information about the nesting that can be used during
+  # reconstruction.
   y_out_elt_template <- dplyr_row_slice(y, integer())[y_out_elt_nms]
   y <- as_tibble(y)
   result <- NextMethod(by = by, keep = keep, name = name) # must manually pass optional arg "override", esp. since `y` forcing breaks `name` default
