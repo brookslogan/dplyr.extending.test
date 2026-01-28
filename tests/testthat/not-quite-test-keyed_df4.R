@@ -230,7 +230,10 @@ new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
 new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
   complete(g, t)
 
-# FIXME
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
+  group_by(g) %>%
+  reframe(t = 1:2)
+
 new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
   group_by(g) %>%
   complete(t = 1:2)

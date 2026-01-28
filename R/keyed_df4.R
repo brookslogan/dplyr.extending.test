@@ -485,12 +485,16 @@ ungroup.keyed_df4 <- function(.data, ...) {
 #' @export
 group_data.keyed_df4 <- function(.data) {
   result <- NextMethod()
-  if (inherits(.data, "rowwise_df")) {
-    .data_group_vars <- ukey_colnames(.data)
-  } else {
-    .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
-  }
-  new_keyed_df4(result, .data_group_vars)
+  # if (make_kdf4_group_data_a_kdf4$value) {
+    if (inherits(.data, "rowwise_df")) {
+      .data_group_vars <- ukey_colnames(.data)
+    } else {
+      .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
+    }
+    new_keyed_df4(result, .data_group_vars)
+  # } else {
+  #   result
+  # }
 }
 
 #' @export
@@ -727,19 +731,67 @@ expand.keyed_df4 <- function(data, ..., .name_repair = "check_unique") {
   result
 }
 
+# make_kdf4_group_data_a_kdf4 <- rlang::new_environment(list(value = TRUE))
+
+make_kdf4_reframe_output_ukey <- rlang::new_environment(list(value = FALSE))
+
+#' @importFrom dplyr reframe
+#' @export
+reframe.keyed_df4 <- function(.data, ..., .by = NULL) {
+  # With `reframe`, the grouping/.by variables alone usually aren't
+  # expected to form a ukey.  Unless we add support for ephemeral
+  # add-to-ukey col marker classes in the computations, let's ensure
+  # we have a non-keyed_df4 result.
+
+  .data <- nominal_kdf4_decay(.data)
+  result <- NextMethod()
+
+  if (make_kdf4_reframe_output_ukey$value) {
+    # ... unless we're working around `complete` behavior...
+    #
+    # XXX potentially re-ordering class vector here...
+    result <- new_keyed_df4(result, names(result))
+  }
+
+  result
+
+  # # Alternative implementation for non-kdf4 output:
+
+  # if (!make_kdf4_group_data_a_kdf4$value) {
+  #   cli::cli_warn("TODO internal error message")
+  #   .data <- kdf4_super(.data)
+  #   return(NextMethod())
+  # }
+  # on.exit(make_kdf4_group_data_a_kdf4$value <- TRUE)
+  # make_kdf4_group_data_a_kdf4$value <- FALSE
+  # # TODO transfer ^ to attr?
+  # #
+  # NextMethod()
+}
+
 #' @importFrom tidyr complete
 #' @export
 complete.keyed_df4 <- function(data, ..., fill = list(), explicit = TRUE) {
-  # We almost get the right result from `complete` using `expand`, but
-  # tidyr then strips subclasses.
-  last_expand_names$value <- NULL
-  result <- NextMethod()
-  if (is.null(last_expand_names)) {
-    cli::cli_inform("`complete.keyed_df4` encountered incompatibility with `tidyr`; returning non-keyed_df4 result.  Please report this issue upstream.")
-    return (result)
-  } else {
-    new_keyed_df4(result, last_expand_names$value)
+  # # We almost get the right result from `complete` using `expand`, but
+  # # tidyr then strips subclasses.
+  # last_expand_names$value <- NULL
+  # result <- NextMethod()
+  # if (is.null(last_expand_names$value)) {
+  #   cli::cli_inform("`complete.keyed_df4` encountered incompatibility with `tidyr`; returning non-keyed_df4 result.  Please report this issue upstream.")
+  #   return (result)
+  # } else {
+  #   print(last_expand_names$value)
+  #   new_keyed_df4(result, last_expand_names$value)
+  # }
+
+  # TODO warn if seems like forgot part of ukey?
+
+  if (make_kdf4_reframe_output_ukey$value) {
+    stop("FIXME bug")
   }
+  on.exit(make_kdf4_reframe_output_ukey$value <- FALSE)
+  make_kdf4_reframe_output_ukey$value <- TRUE
+  NextMethod()
 }
 
 
