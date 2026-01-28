@@ -1,100 +1,137 @@
-#' Low-level constructor for keyed_df4; use as_keyed_df4 or use carefully
+#' Low-level constructor for keyed_df5; use as_keyed_df5 or use carefully
 #'
 #' This does not validate that there are no duplicate rows in `df`; use this only
 #' if you have already verified that. For a constructor/converter that validates
-#' that for you, use `as_keyed_df4` instead.
+#' that for you, use `as_keyed_df5` instead.
 #'
 #' @param df data frame (possibly subclassed)
 #' @param df_ukey_colnames chr
 #'
-#' @return a (nominal) keyed_df4
+#' @return a (nominal) keyed_df5
 #'
 #' @export
-new_keyed_df4 <- function(df, ukey_colnames) {
+new_keyed_df5 <- function(df, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
+  checkmate::assert(check_structural_keyed_df5(df, full_ukey_colnames, unselected_ukey_cols_df, context_row))
+  new_key_keyed_df5_0(df, full_ukey_colnames, unselected_ukey_cols_df, context_row)
+}
+
+new_key_keyed_df5_0 <- function(df, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
+  class(df) <- c("keyed_df5", class(df))
+  attr(df, "dplyr.extending.test::full_ukey_colnames") <- full_ukey_colnames
+  attr(df, "dplyr.extending.test::unselected_ukey_cols_df") <- unselected_ukey_cols_df
+  attr(df, "dplyr.extending.test::context_row") <- context_row
+  df
+}
+
+check_structural_keyed_df5 <- function(df, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
   if (!inherits(df, "data.frame")) {
     # TODO go back to requiring tibble rather than df?
     #
     # XXX or try to allow even more? requires more than just
     # dplyr_extending, but having to do significant work beyond anyway
-    cli::cli_abort("`df` must be a `data.frame`")
+    return("`df` must be a `data.frame`")
   }
-  if (inherits(df, "keyed_df4")) {
-    cli::cli_abort("`df` must not already be a keyed_df4")
+  if (inherits(df, "keyed_df5")) {
+    return("`df` must not already be a keyed_df5")
   }
   # TODO is.character?
-  if (!inherits(ukey_colnames, "character")) {
-    cli::cli_abort("`ukey_colnames` must be a character vector")
+  if (!inherits(full_ukey_colnames, "character")) {
+    return("`full_ukey_colnames` must be a character vector")
   }
-  # TODO subset verification
-  class(df) <- c("keyed_df4", class(df))
-  attr(df, "dplyr.extending.test::ukey_colnames") <- ukey_colnames
-  # TODO rowwise
-  df
+  if (!inherits(unselected_ukey_cols_df, "data.frame")) {
+    return("`unselected_ukey_cols_df` must be a data.frame")
+  }
+  if (nrow(unselected_ukey_cols_df) != nrow(df)) {
+    return("`unselected_ukey_cols_df` must have the same `nrow` as `df`")
+  }
+  if (!all(names(unselected_ukey_cols_df) %in% full_ukey_colnames)) {
+    return("`unselected_ukey_cols_df` must have all its colnames included in `full_ukey_colnames`")
+  }
+  if (!all(full_ukey_colnames %in% names(df) | full_ukey_colnames %in% names(unselected_ukey_cols_df))) {
+    return("`full_ukey_colnames` must all appear in either `names(df)` or `names(unselected_ukey_cols_df)`")
+  }
+  if (!inherits(context_row, "data.frame")) {
+    return("`context_row` must be a data.frame")
+  }
+  if (nrow(context_row) != 1L) {
+    return("`context_row` must have exactly one row")
+  }
+  return(TRUE)
 }
 # TODO check that not data.table? perhaps might not have to, if we're data.table-unaware? but then vctrs stuff might need to consider data.table.
 
-#' Convert a nominal kdf4 (or subclass) into a not-kdf4
+#' Convert a nominal kdf5 (or subclass) into a not-kdf5
 #'
 #' @keywords internal
-nominal_kdf4_decay <- function(nominal_kdf4) {
-  if (!inherits(nominal_kdf4, "keyed_df4")) {
-    cli::cli_abort("`nominal_kdf4` was not marked a keyed_df4 to begin with")
+nominal_kdf5_decay <- function(nominal_kdf5) {
+  if (!inherits(nominal_kdf5, "keyed_df5")) {
+    cli::cli_abort("`nominal_kdf5` was not marked a keyed_df5 to begin with")
   }
-  result <- nominal_kdf4
-  attr(result, "dplyr.extending.test::ukey_colnames") <- NULL
-  class(result) <- class(result)[class(result) != "keyed_df4"]
+  result <- nominal_kdf5
+  attr(result, "dplyr.extending.test::full_ukey_colnames") <- NULL
+  attr(result, "dplyr.extending.test::unselected_ukey_cols_df") <- NULL
+  attr(result, "dplyr.extending.test::context_row") <- NULL
+  class(result) <- class(result)[class(result) != "keyed_df5"]
   result
 }
 
-df_ensure_not_kdf4 <- function(df) {
-  if (inherits(df, "keyed_df4")) {
-    nominal_kdf4_decay(df)
+df_ensure_not_kdf5 <- function(df) {
+  if (inherits(df, "keyed_df5")) {
+    # XXX redundant check... better organization somehow?
+    nominal_kdf5_decay(df)
   } else {
     df
   }
 }
 
 #' @export
-ukey_colnames_else_null.keyed_df4 <- function(x) {
+ukey_colnames_else_null.keyed_df5 <- function(x) {
   attr(x, "dplyr.extending.test::ukey_colnames")
 }
 
-kdf4_self <- function(x) {
-  if (!inherits(x, "keyed_df4")) {
-    cli::cli_abort("`x` was not marked a keyed_df4 to begin with")
+kdf5_self <- function(x) {
+  if (!inherits(x, "keyed_df5")) {
+    cli::cli_abort("`x` was not marked a keyed_df5 to begin with")
   }
   result <- x
   old_class <- class(result)
-  # TODO note only nominally stripping subclasses; attrs may remain.
-  class(result) <- old_class[match("keyed_df4", old_class):length(old_class)]
+  # TODO note only nominally stripping subclasses; attrs will remain.
+  class(result) <- old_class[match("keyed_df5", old_class):length(old_class)]
   result
 }
 
 # TODO any good helpers to re-tag with subclasses?
 
-kdf4_super <- function(x) {
+kdf5_super <- function(x) {
+  if (!inherits(x, "keyed_df5")) {
+    cli::cli_abort("`x` was not marked a keyed_df5 to begin with")
+  }
   old_class <- class(x)
-  result <- nominal_kdf4_decay(x)
-  # TODO note only nominally stripping subclasses; attrs may remain.
-  class(result) <- old_class[(match("keyed_df4", old_class) + 1L):length(old_class)]
+  result <- x
+  # TODO note only nominally stripping self and subclasses; attrs will remain.
+  class(result) <- old_class[(match("keyed_df5", old_class) + 1L):length(old_class)]
   result
 }
 
-#' Is / why isn't data.frame/subclass `x` compatible with keyed_df4 invariants
+#' Is / why isn't data.frame/subclass `x` compatible with keyed_df5 invariants
 #'
 #' @param x data.frame (possibly subclassed)
 #' @return TRUE or str
-df_check_kdf4_compatible <- function(x, ukey_colnames) {
+df_check_kdf5_compatible <- function(x, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
+  # TODO omit check if possible
+  #
+  # TODO structural checks
+  #
   # TODO proper caller_arg passing
-  if (!all(ukey_colnames %in% names(x))) {
+  if (!all(full_ukey_colnames %in% names(x))) {
     "didn't have one of the `ukey_colnames`"
   } else {
-    if (inherits(x, "keyed_df4")) {
-      maybe_super <- kdf4_super(x)
+    if (inherits(x, "keyed_df5")) {
+      maybe_super <- kdf5_super(x)
     } else {
       maybe_super <- x
     }
-    if (vctrs::vec_duplicate_any(maybe_super[ukey_colnames])) {
+    if (vctrs::vec_duplicate_any(maybe_super[full_ukey_colnames])) {
       "contained duplicate ukey values"
     } else {
       TRUE
@@ -103,12 +140,17 @@ df_check_kdf4_compatible <- function(x, ukey_colnames) {
 }
 
 # TODO better doc
-#' Convert to kdf4
+#' Convert to kdf5
 #' @export
-as_keyed_df4 <- function(x, ukey_colnames) {
-  check <- df_check_kdf4_compatible(x, ukey_colnames)
+as_keyed_df5 <- function(x, ukey_colnames, context_row = tibble::new_tibble(list(), nrow = 1L)) {
+  unselected_ukey_cols_df <- x[,integer()]
+  as_keyed_df5_selection(x, ukey_colnames, unselected_ukey_cols_df, context_row)
+}
+
+as_keyed_df5_selection <- function(x, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
+  check <- df_check_kdf5_compatible(x, full_ukey_colnames, unselected_ukey_cols_df, context_row)
   if (isTRUE(check)) {
-    df_ensure_structural_keyed_df4(x, ukey_colnames)
+    df_ensure_structural_keyed_df5(x, full_ukey_colnames, unselected_ukey_cols_df, context_row)
   } else {
     # TODO use validator function instead.
     cli::cli_abort("`x` {check}")
@@ -117,53 +159,73 @@ as_keyed_df4 <- function(x, ukey_colnames) {
 
 # TODO validate
 
-df_ensure_structural_keyed_df4 <- function(df, ukey_colnames) {
-  # TODO subset verification
-  if (! "keyed_df4" %in% class(df)) {
-    class(df) <- c("keyed_df4", class(df))
-  }
-  attr(df, "dplyr.extending.test::ukey_colnames") <- ukey_colnames
-  # TODO rowwise
+df_ensure_structural_keyed_df5 <- function(x, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
+  not_kdf5 <- df_ensure_not_kdf5(x)
+  new_keyed_df5(not_kdf5, full_ukey_colnames, unselected_ukey_cols_df, context_row)
+}
+# XXX should we be allowing kdf5 in the middle of the class list?
+
+df_kdf5_incompatible_clean <- function(df) {
+  df_class <- class(df)
+  class(df) <- df_class[df_class != "keyed_df5"]
+  attr(result, "dplyr.extending.test::full_ukey_colnames") <- NULL
+  attr(result, "dplyr.extending.test::unselected_ukey_cols_df") <- NULL
+  attr(result, "dplyr.extending.test::context_row") <- NULL
   df
 }
 
-df_as_keyed_df4_if_compatible <- function(df, ukey_colnames) {
-  if (isTRUE(df_check_kdf4_compatible(df, ukey_colnames))) {
-    df_ensure_structural_keyed_df4(df, ukey_colnames)
+# df_as_keyed_df5_if_compatible -->
+df_as_keyed_df5_else_clean <- function(df, full_ukey_colnames, unselected_ukey_cols_df, context_row) {
+  if (isTRUE(df_check_kdf5_compatible(df, full_ukey_colnames, unselected_ukey_cols_df, context_row))) {
+    df_ensure_structural_keyed_df5(df, full_ukey_colnames, unselected_ukey_cols_df, context_row)
   } else {
-    # XXX if was nominal or structural or structural-minus-nominal
-    # kdf4 that needs to decay, we have to ensure not... not sure this
-    # function as-is is that helpful
-    df
+    df_kdf5_incompatible_clean(df)
   }
 }
+# TODO where should simplification of unique ukey cols go?
 
 #' @export
-print.keyed_df4 <- function(x, ...) {
+print.keyed_df5 <- function(x, ...) {
   # TODO pillar stuff, cli toString alternative
-  print(glue::glue('# keyed_df4[{toString(ukey_colnames(x))}] of:\n'))
+  full_ukey_colnames <- attr(x, "dplyr.extending.test::full_ukey_colnames")
+  unselected_ukey_colnames <- names(attr(x, "dplyr.extending.test::unselected_ukey_cols_df"))
+  context_row <- attr(x, "dplyr.extending.test::context_row")
+  if (length(unselected_ukey_colnames) == 0L) {
+    header <- glue::glue('# keyed_df5[{toString(full_ukey_colnames)}]')
+  } else {
+    selected_ukey_colnames <- vctrs::vec_set_difference(full_ukey_colnames, unselected_ukey_colnames)
+    header <- glue::glue('# keyed_df5_view[{toString(selected_ukey_colnames)} without {toString(unselected_ukey_colnames)}]')
+  }
+  if (length(context_row) != 0L) {
+    # TODO name=value, not just value
+    header <- header + glue::glue(' for {toString(paste0(names(context_row), " = ", context_row))}')
+  }
+  header <- header + " backed by:"
+  print(header)
   NextMethod()
 }
 
+# FIXME TODO FINISH
+
 #' @export
-`names<-.keyed_df4` <- function(x, value) {
+`names<-.keyed_df5` <- function(x, value) {
   result <- NextMethod()
   old_names <- names(x)
   old_key_colnames <- ukey_colnames(x)
   new_key_colnames <- value[match(old_key_colnames, old_names)]
-  df_ensure_structural_keyed_df4(x, new_key_colnames)
+  df_ensure_structural_keyed_df5(x, new_key_colnames)
 }
 
-kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = NULL, j = NULL) {
+kdf5_extraction_restore_kdf5_if_possible <- function(extraction, original, i = NULL, j = NULL) {
   if (anyNA(i)) {
-    return(df_ensure_not_kdf4(extraction))
+    return(df_ensure_not_kdf5(extraction))
   }
   if (is.numeric(i) && length(i) >= 1L && i[[1L]] >= 1L && (max(i) > nrow(original) || vctrs::vec_duplicate_any(i))) {
     # TODO or make > nrow a hard error? maybe through a non-restore interface (maybe using vec_slice)?
-    return(df_ensure_not_kdf4(extraction))
+    return(df_ensure_not_kdf5(extraction))
   }
   if (is.null(j)) {
-    return(df_ensure_structural_keyed_df4(extraction, ukey_colnames(original)))
+    return(df_ensure_structural_keyed_df5(extraction, ukey_colnames(original)))
   }
   if (!is.character(j)) {
     j <- names(original)[j]
@@ -173,22 +235,21 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   selected_ukey_colnames <- original_ukey_colnames[ukey_col_included]
   dropped_ukey_colnames <- original_ukey_colnames[!ukey_col_included]
   if (length(dropped_ukey_colnames) == 0L) {
-    return(df_ensure_structural_keyed_df4(extraction, ukey_colnames(original)))
+    return(df_ensure_structural_keyed_df5(extraction, ukey_colnames(original)))
   }
   if (is.null(i)) {
-    dropped_ukey_col_values <- kdf4_super(original)[dropped_ukey_colnames]
+    dropped_ukey_col_values <- kdf5_super(original)[dropped_ukey_colnames]
   } else {
-    dropped_ukey_col_values <- kdf4_super(original)[i, dropped_ukey_colnames]
+    dropped_ukey_col_values <- kdf5_super(original)[i, dropped_ukey_colnames]
   }
   # TODO vs. vctrs::vec_unique_count:
   if (vctrs::vec_size(dropped_ukey_col_values) != 0L &&
         !all(vctrs::vec_equal(dropped_ukey_col_values, dropped_ukey_col_values[1,]))) {
     # technically we could still have unique new-ukey values here,
     # but it seems like a violation anyway
-    df_ensure_not_kdf4(extraction)
-    # new_keyed_df4_selection(df_ensure_not_kdf4(extraction), selected_ukey_colnames, dropped_ukey_col_values)
+    df_ensure_not_kdf5(extraction)
   } else {
-    df_ensure_structural_keyed_df4(extraction, vctrs::vec_set_difference(ukey_colnames(original), dropped_ukey_colnames))
+    df_ensure_structural_keyed_df5(extraction, vctrs::vec_set_difference(ukey_colnames(original), dropped_ukey_colnames))
   }
 }
 # TODO vs. inline
@@ -202,7 +263,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 # actually be faster
 
 #' @export
-`[.keyed_df4` <- function(x, i, j, ..., drop = FALSE) {
+`[.keyed_df5` <- function(x, i, j, ..., drop = FALSE) {
   rlang::check_dots_empty0(...)
 
   result <- NextMethod()
@@ -226,16 +287,46 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
     if (missing(i)) i <- NULL
     if (missing(j)) j <- NULL
   }
-  result <- kdf4_extraction_restore_kdf4_if_possible(result, x, i, j)
   if (drop && length(result) == 1L) {
-    # FIXME wrong; result will already have had drop applied.
-    result <- result[[1L]]
+    # We want to drop.  NextMethod() may give us an invalid keyed_df5
+    # or subclass; ensure these are gone before re-dispatching.
+    if (inherits(result, "keyed_df5")) {
+      result <- kdf5_super(result)
+    }
+    return(result[[1L]])
   }
+  if (drop) {
+    stop("TODO")
+  }
+    x_full_ukey_colnames <- attr(x, "dplyr.extending.test::full_ukey_colnames")
+  if (!is.null(j)) {
+    # TODO detect ukey col duplication?
+    x_unselected_ukey_cols_df <- attr(x, "dplyr.extending.test::unselected_ukey_cols_df")
+    freshly_unselected_colnames <- vctrs::vec_set_difference(names(x), names(result))
+    freshly_unselected_ukey_colnames <- vctrs::vec_set_intersect(freshly_unselected_colnames, x_full_ukey_colnames)
+    result_unselected_ukey_cols_df <- dplyr_col_modify(x_unselected_ukey_cols_df, kdf5_super(x)[freshly_unselected_colnames])
+  } else {
+    result_unselected_ukey_cols_df <- attr(x, "dplyr.extending.test::unselected_ukey_cols_df")
+  }
+  if (!is.null(i)) {
+    result_unselected_ukey_cols_df <- result_unselected_ukey_cols_df[i,]
+    is_constant <- vapply(result_unselected_ukey_cols_df, vctrs::vec_unique_count, integer(1L)) == 1L
+    fresh_context <- result_unselected_ukey_cols_df[1L, is_constant]
+    result_unselected_ukey_cols_df <- result_unselected_ukey_cols_df[!is_constant]
+    result_context_row <- attr(x, "dplyr.extending.test::context_row")
+    result_context_row[, names(fresh_context)] <- fresh_context
+    result_full_ukey_colnames <- vctrs::vec_set_difference(x_full_ukey_colnames, names(fresh_context))
+  } else {
+    result_context_row <- attr(x, "dplyr.extending.test::context_row")
+    result_full_ukey_colnames <- x_full_ukey_colnames
+  }
+  result <- df_ensure_structural_keyed_df5(result, result_full_ukey_colnames, result_unselected_ukey_cols_df, result_context_row)
+  # ^ TODO skip structural checks?
   result
 }
 
 #' @export
-`[<-.keyed_df4` <- function(x, i, j, ..., value) {
+`[<-.keyed_df5` <- function(x, i, j, ..., value) {
   rlang::check_dots_empty0(...)
 
   result <- NextMethod()
@@ -245,7 +336,7 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   if (call_was_1d) {
     if (is.matrix(i)) {
       maybe_new_ukey_colnames <- vctrs::vec_set_intersect(names(result), x_ukey_colnames)
-      result <- df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(result), maybe_new_ukey_colnames)
+      result <- df_as_keyed_df5_else_clean(df_ensure_not_kdf5(result), maybe_new_ukey_colnames)
       return(result)
     } else {
       j <- i
@@ -257,22 +348,22 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
   }
   if (any(j %in% x_ukey_colnames)) {
     # XXX S3 dispatch on names probably a decorator dispatch
-    # violation... temporarily turn into kdf4_super, re-dispatch,
-    # conditionally kdf4, then tack back subclasses?
+    # violation... temporarily turn into kdf5_super, re-dispatch,
+    # conditionally kdf5, then tack back subclasses?
     maybe_new_ukey_colnames <- vctrs::vec_set_intersect(names(result), x_ukey_colnames)
-    result <- df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(result), maybe_new_ukey_colnames)
+    result <- df_as_keyed_df5_else_clean(df_ensure_not_kdf5(result), maybe_new_ukey_colnames)
   }
   result
 }
 
 #' @export
-`$<-.keyed_df4` <- function(x, name, value) {
+`$<-.keyed_df5` <- function(x, name, value) {
   x[name] <- list(value)
   x
 }
 
 #' @export
-`[[<-.keyed_df4` <- function(x, i, value) {
+`[[<-.keyed_df5` <- function(x, i, value) {
   # XXX documentation for args of `[[<-` being limited to (x, i, value)
   # doesn't match what we can put into data.frame `[[<-` methods...
   x[i] <- list(value)
@@ -281,16 +372,16 @@ kdf4_extraction_restore_kdf4_if_possible <- function(extraction, original, i = N
 
 
 #' @export
-dplyr_row_slice.keyed_df4 <- function(data, i, ...) {
-  kdf4_self(data)[i,]
+dplyr_row_slice.keyed_df5 <- function(data, i, ...) {
+  kdf5_self(data)[i,]
   # XXX may have old subclass attrs sticking around, but maybe not
   # guaranteed... do we need to guarantee or does subclass need to
   # guarantee correct post-processing?
 }
 
 #' @export
-dplyr_col_modify.keyed_df4 <- function(data, cols) {
-  data <- kdf4_self(data)
+dplyr_col_modify.keyed_df5 <- function(data, cols) {
+  data <- kdf5_self(data)
   # XXX may have old subclass attrs sticking around, but maybe not
   # guaranteed... do we need to guarantee or does subclass need to
   # guarantee correct post-processing?
@@ -299,9 +390,9 @@ dplyr_col_modify.keyed_df4 <- function(data, cols) {
 }
 
 #' @export
-dplyr_reconstruct.keyed_df4 <- function(data, template) {
+dplyr_reconstruct.keyed_df5 <- function(data, template) {
   maybe_result_ukey_colnames <- vctrs::vec_set_intersect(names(data), ukey_colnames(template))
-  df_as_keyed_df4_if_compatible(df_ensure_not_kdf4(NextMethod()), maybe_result_ukey_colnames)
+  df_as_keyed_df5_else_clean(df_ensure_not_kdf5(NextMethod()), maybe_result_ukey_colnames)
   # XXX may have old subclass attrs sticking around, but maybe not
   # guaranteed... do we need to guarantee or does subclass need to
   # guarantee correct post-processing?
@@ -310,7 +401,7 @@ dplyr_reconstruct.keyed_df4 <- function(data, template) {
 #' @importFrom vctrs vec_ptype2
 #' @importFrom rlang caller_arg caller_env
 #' @export
-vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+vec_ptype2.keyed_df5.keyed_df5 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
   # XXX there's also the matter of ukey ordering... we might use this
   # to determine convenience sorts, so we may not necessarily be able
   # to apply a fixed-(C-)locale alphabetization to get a canonical
@@ -326,14 +417,19 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
   x_ukey_colnames <- ukey_colnames(x)
   y_ukey_colnames <- ukey_colnames(y)
   if (identical(x_ukey_colnames, y_ukey_colnames)) {
-    new_keyed_df4(vec_ptype2(
-      kdf4_super(x),
-      kdf4_super(y),
-      ...,
-      x_arg = glue::glue("kdf4_super({x_arg})"),
-      y_arg = glue::glue("kdf4_super({y_arg})"),
-      call = call
-    ), x_ukey_colnames)
+    new_keyed_df5(
+      vec_ptype2(
+        kdf5_super(x),
+        kdf5_super(y),
+        ...,
+        x_arg = glue::glue("kdf5_super({x_arg})"),
+        y_arg = glue::glue("kdf5_super({y_arg})"),
+        call = call
+      ),
+      x_ukey_colnames,
+      vec_ptype2(
+      ),
+    )
   } else {
     # cli::cli_abort("`{x_arg}` and `{y_arg}` have incompatible `ukey_colnames`", call = call)
     vctrs::stop_incompatible_type(
@@ -349,38 +445,38 @@ vec_ptype2.keyed_df4.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_a
 }
 
 #' @export
-vec_ptype2.keyed_df4.data.frame <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+vec_ptype2.keyed_df5.data.frame <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
   vec_ptype2(
-    kdf4_super(x), y, ...,
-    x_arg = glue::glue("kdf4_super({x_arg})"),
+    kdf5_super(x), y, ...,
+    x_arg = glue::glue("kdf5_super({x_arg})"),
     y_arg = y_arg,
     call = call
   )
 }
 
 #' @export
-vec_ptype2.keyed_df4.tbl_df <- vec_ptype2.keyed_df4.data.frame
+vec_ptype2.keyed_df5.tbl_df <- vec_ptype2.keyed_df5.data.frame
 
 # if not actually potentially part of a decorator stack, could just rely on vec_default_{cast,ptype2}...
 
 # #' @export
-# vec_ptype2.keyed_df4.default <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+# vec_ptype2.keyed_df5.default <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
 #   cat("MADE IT HERE!\n")
 #   stop("TODO")
 # }
 
 #' @export
-vec_ptype2.data.frame.keyed_df4 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
+vec_ptype2.data.frame.keyed_df5 <- function(x, y, ..., x_arg = caller_arg(x), y_arg = caller_arg(y), call = caller_env()) {
   vec_ptype2(
-    x, kdf4_super(y), ...,
+    x, kdf5_super(y), ...,
     x_arg = x_arg,
-    y_arg = glue::glue("kdf4_super({y_arg})"),
+    y_arg = glue::glue("kdf5_super({y_arg})"),
     call = call
   )
 }
 
 #' @export
-vec_ptype2.tbl_df.keyed_df4 <- vec_ptype2.data.frame.keyed_df4
+vec_ptype2.tbl_df.keyed_df5 <- vec_ptype2.data.frame.keyed_df5
 
 # XXX no(?) way to make this work with decorators that don't know about each other... unless we have a decorator_df as the head class always and have it handle dispatch, which might be doable... or maybe we can have a registry of df-lookalikes plus vctrs ptypes, and auto-register a whole bunch of stuff on new_* as well as hook on every installed package...
 
@@ -391,7 +487,7 @@ vec_ptype2.tbl_df.keyed_df4 <- vec_ptype2.data.frame.keyed_df4
 # TODO vec_cast
 
 #' @export
-vec_cast.keyed_df4.keyed_df4 <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
+vec_cast.keyed_df5.keyed_df5 <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
   x_ukey_colnames <- ukey_colnames(x)
   to_ukey_colnames <- ukey_colnames(to)
   if (identical(x_ukey_colnames, to_ukey_colnames)) {
@@ -413,39 +509,39 @@ vec_cast.keyed_df4.keyed_df4 <- function(x, to, ..., x_arg = caller_arg(x), to_a
 }
 
 #' @export
-vec_cast.keyed_df4.data.frame <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
+vec_cast.keyed_df5.data.frame <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
   # # vctrs native dispatch -> we are head class; we can re-dispatch cleanly
   # dplyr_reconstruct(x, to)
-  as_keyed_df4(
-    vec_cast(x, kdf4_super(to), ..., x_arg = x_arg, to_arg = "kdf4_super({to_arg})", call = call),
+  as_keyed_df5(
+    vec_cast(x, kdf5_super(to), ..., x_arg = x_arg, to_arg = "kdf5_super({to_arg})", call = call),
     ukey_colnames(to)
   )
 }
 
 #' @export
-vec_cast.keyed_df4.tbl_df <- vec_cast.keyed_df4.data.frame
+vec_cast.keyed_df5.tbl_df <- vec_cast.keyed_df5.data.frame
 
 #' @export
-vec_cast.data.frame.keyed_df4 <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
-  vec_cast(kdf4_super(x), to, ..., x_arg = glue::glue("kdf4_super({x_arg})"), to_arg = to_arg, call = call)
+vec_cast.data.frame.keyed_df5 <- function(x, to, ..., x_arg = caller_arg(x), to_arg = "", call = caller_env()) {
+  vec_cast(kdf5_super(x), to, ..., x_arg = glue::glue("kdf5_super({x_arg})"), to_arg = to_arg, call = call)
 }
 
 #' @export
-vec_cast.tbl_df.keyed_df4 <- vec_cast.data.frame.keyed_df4
+vec_cast.tbl_df.keyed_df5 <- vec_cast.data.frame.keyed_df5
 
-#' @method as.data.frame keyed_df4
+#' @method as.data.frame keyed_df5
 #' @export
-as.data.frame.keyed_df4 <- function(x, ...) {
+as.data.frame.keyed_df5 <- function(x, ...) {
   result <- NextMethod()
-  # TODO refactor this into a function? df_ensure_not_kdf4 doesn't clean attrs of non-kdf4-classed things
+  # TODO refactor this into a function? df_ensure_not_kdf5 doesn't clean attrs of non-kdf5-classed things
   attr(result, "dplyr.extending.test::ukey_colnames") <- NULL
   result
 }
 
 #' @importFrom tibble as_tibble
-#' @method as_tibble keyed_df4
+#' @method as_tibble keyed_df5
 #' @export
-as_tibble.keyed_df4 <- function(x, ...) {
+as_tibble.keyed_df5 <- function(x, ...) {
   result <- NextMethod()
   attr(result, "dplyr.extending.test::ukey_colnames") <- NULL
   result
@@ -453,33 +549,33 @@ as_tibble.keyed_df4 <- function(x, ...) {
 
 # #' @importFrom vctrs vec_proxy
 # #' @export
-# vec_proxy.keyed_df4 <- function(x, ...) {
+# vec_proxy.keyed_df5 <- function(x, ...) {
 #   x
 # }
 
 #' @importFrom vctrs vec_restore
 #' @export
-vec_restore.keyed_df4 <- function(x, to, ...) {
-  as_keyed_df4(vec_restore(kdf4_super(x), kdf4_super(to)), ukey_colnames(to))
+vec_restore.keyed_df5 <- function(x, to, ...) {
+  as_keyed_df5(vec_restore(kdf5_super(x), kdf5_super(to)), ukey_colnames(to))
 }
 
 #' @importFrom dplyr group_data
 #' @export
-group_by.keyed_df4 <- function(.data, ...) {
-  df_ensure_structural_keyed_df4(NextMethod(), ukey_colnames(.data))
+group_by.keyed_df5 <- function(.data, ...) {
+  df_ensure_structural_keyed_df5(NextMethod(), ukey_colnames(.data))
 }
 
 #' @importFrom dplyr group_data
 #' @export
-group_data.keyed_df4 <- function(.data) {
+group_data.keyed_df5 <- function(.data) {
   result <- NextMethod()
   .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
-  new_keyed_df4(result, .data_group_vars)
+  new_keyed_df5(result, .data_group_vars)
 }
 
 #' @importFrom dplyr inner_join
 #' @export
-inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., multiple = "all", relationship = NULL) {
+inner_join.keyed_df5 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., multiple = "all", relationship = NULL) {
   if (is.null(by)) {
     by <- vctrs::vec_set_intersect(names(x), names(y))
     cli_inform('Joining with `by = {paste(collapse = "", deparse(by))}`')
@@ -523,7 +619,7 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
   # dplyr_reconstruct by converting to superclass:
   orig_x <- x
   x_class <- class(x)
-  x_self_ind <- match("keyed_df4", x_class)
+  x_self_ind <- match("keyed_df5", x_class)
   x_subclass <- x_class[seq_len(x_self_ind - 1L)]
   class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
   result <- NextMethod(by = by) # must manually pass optional arg "override"
@@ -561,8 +657,8 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
         ))
       }
     }
-    template <- new_keyed_df4(template, result_ukey_nms_else_null)
-    result <- new_keyed_df4(result, result_ukey_nms_else_null)
+    template <- new_keyed_df5(template, result_ukey_nms_else_null)
+    result <- new_keyed_df5(result, result_ukey_nms_else_null)
   }
   template <- reconstruct_as_is(template)
   class(template) <- c(x_subclass, class(template))
@@ -572,22 +668,22 @@ inner_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x",
 
 #' @importFrom dplyr left_join
 #' @export
-left_join.keyed_df4 <- inner_join.keyed_df4
+left_join.keyed_df5 <- inner_join.keyed_df5
 
 #' @importFrom dplyr right_join
 #' @export
-right_join.keyed_df4 <- inner_join.keyed_df4
+right_join.keyed_df5 <- inner_join.keyed_df5
 
 #' @importFrom dplyr full_join
 #' @export
-full_join.keyed_df4 <- inner_join.keyed_df4
+full_join.keyed_df5 <- inner_join.keyed_df5
 
 #' @importFrom dplyr cross_join
 #' @export
-cross_join.keyed_df4 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")) {
+cross_join.keyed_df5 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")) {
   orig_x <- x
   x_class <- class(x)
-  x_self_ind <- match("keyed_df4", x_class)
+  x_self_ind <- match("keyed_df5", x_class)
   x_subclass <- x_class[seq_len(x_self_ind - 1L)]
   class(x) <- x_class[(x_self_ind + 1L):length(x_class)]
   result <- NextMethod()
@@ -601,8 +697,8 @@ cross_join.keyed_df4 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")
     y_out_ukey_nm_needs_suffix <- y_out_ukey_nms %in% names(orig_x)
     y_out_ukey_nms[y_out_ukey_nm_needs_suffix] <- paste0(y_out_ukey_nms[y_out_ukey_nm_needs_suffix], suffix[[2L]])
     result_ukey_nms <- c(x_out_ukey_nms, y_out_ukey_nms)
-    template <- new_keyed_df4(template, result_ukey_nms)
-    result <- new_keyed_df4(result, result_ukey_nms)
+    template <- new_keyed_df5(template, result_ukey_nms)
+    result <- new_keyed_df5(result, result_ukey_nms)
   }
   template <- reconstruct_as_is(template)
   class(template) <- c(x_subclass, class(template))
@@ -612,7 +708,7 @@ cross_join.keyed_df4 <- function(x, y, ..., copy = FALSE, suffix = c(".x", ".y")
 
 #' @importFrom dplyr nest_join
 #' @export
-nest_join.keyed_df4 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name = NULL, ...) {
+nest_join.keyed_df5 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name = NULL, ...) {
   if (is.null(name)) {
     # quickly apply this default, before anything potentially forces
     # `y` and mess up `enexpr` result
