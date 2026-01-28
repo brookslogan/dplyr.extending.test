@@ -199,17 +199,17 @@ nest_join(
 )$y
 
 
-kdf4 <- new_keyed_df4(tibble(g = c(1,1,2,2),  t = c(1,2,1,2), v = 1:4), c("g", "t"))
-# kdf4s <- keyed_df4_selection(kdf4, c("t", "v"))
-kdf4s <- kdf4[, c("t", "v")]
-kdf4s
+# kdf4 <- new_keyed_df4(tibble(g = c(1,1,2,2),  t = c(1,2,1,2), v = 1:4), c("g", "t"))
+# # kdf4s <- keyed_df4_selection(kdf4, c("t", "v"))
+# kdf4s <- kdf4[, c("t", "v")]
+# kdf4s
 
-# keyed_df4_selection(kdf4s, "v")
-kdf4s["v"]
+# # keyed_df4_selection(kdf4s, "v")
+# kdf4s["v"]
 
-kdf4s[1:2,] # TODO
+# kdf4s[1:2,] # TODO
 
-kdf4s[,2] # FIXME... we needed to track the original ukey; can't delegate that to the selection because it might decay
+# kdf4s[,2] # FIXME... we needed to track the original ukey; can't delegate that to the selection because it might decay
 
 
 # FIXME list_of has the wrong ptype plus the entries are plain tibbles...

@@ -428,13 +428,25 @@ ungroup.keyed_df2 <- function(x, ...) {
 
 #' @export
 group_split.keyed_df2 <- function(.tbl, ..., .keep = TRUE) {
+  # XXX this doesn't really respect superclasses; perhaps a ukey check
+  # suspension and correction would be better.
+  if (rlang::dots_n(...) != 0L) {
+    if (inherits(.tbl, "grouped_df")) {
+      cli_abort('grouping with `...` is not allowed when `.tbl` is (already) a "grouped_df"')
+    } else {
+      .tbl <- group_by(.tbl, ...)
+    }
+  }
   is <- group_rows(.tbl)
-  if(.keep) {
+  if (.keep) {
     j <- seq_along(.tbl)
   } else {
     j <- which(! names(.tbl) %in% group_vars(.tbl))
   }
   chop_extract(ungroup(.tbl), is, j)
+  # XXX this sort of matches dplyr besides allowing chop_extract in a
+  # different way, but should we be doing more based on group_data to
+  # adjust the key?
 }
 
 # TODO group_split... .keep=FALSE col selection happens too early

@@ -28,6 +28,17 @@ chop_extract <- function(x, is, j) {
 
 #' @export
 chop_extract.default <- function(x, is, j) {
+  # TODO match dplyr or at least use ?dplyr_extending in this default,
+  # and write other methods for the ukeyed things?
+  #
+  # XXX plus this may also have a problem with extensibility... we're
+  # redispatching a bunch... Should either be a non-S3 function with a
+  # bunch of dispatching, or should be stripping to "self" class
+  # before redispatching... but if try latter, since this is default,
+  # what would be self class?  Plus seems like this would require
+  # dplyr_reconstruct calls or all subclasses to impl this "3rd-party"
+  # generic...
+  #
   # XXX should this be list_of?
   lapply(is, function(i) {
     x[i, j]

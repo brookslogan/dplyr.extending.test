@@ -469,6 +469,8 @@ group_by.keyed_df4 <- function(.data, ...) {
   df_ensure_structural_keyed_df4(NextMethod(), ukey_colnames(.data))
 }
 
+# TODO rowwise
+
 #' @importFrom dplyr group_data
 #' @export
 group_data.keyed_df4 <- function(.data) {
@@ -476,6 +478,8 @@ group_data.keyed_df4 <- function(.data) {
   .data_group_vars <- vctrs::vec_set_difference(names(result), ".rows")
   new_keyed_df4(result, .data_group_vars)
 }
+
+# TODO group_split
 
 #' @importFrom dplyr inner_join
 #' @export
