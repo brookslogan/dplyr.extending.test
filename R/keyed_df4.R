@@ -794,6 +794,30 @@ complete.keyed_df4 <- function(data, ..., fill = list(), explicit = TRUE) {
   NextMethod()
 }
 
+#' @importFrom tidyr nest
+#' @export
+nest.keyed_df4 <- function (.data, ..., .by = NULL, .key = NULL, .names_sep = NULL) {
+  dots <- rlang::enquos(...)
+  dots_names <- rlang::names2(dots)
+  if (any(dots_names == "")) {
+    cli::cli_abort("unnamed ... is deprecated upstream and not supported by keyed_df4; convert to `data = c(...)`")
+  }
+
+  result <- NextMethod()
+  op_group_vars <- vctrs::vec_set_difference(names(result), dots_names)
+  result_ukey_colnames <- op_group_vars
+  potential_value_ukey_colnames <- vctrs::vec_set_difference(ukey_colnames(.data), result_ukey_colnames)
+  result[dots_names] <- lapply(result[dots_names], function(value) {
+    if (length(value) >= 1L && all(potential_value_ukey_colnames %in% names(value[[1L]]))) {
+      lapply(value, df_ensure_structural_keyed_df4, potential_value_ukey_colnames)
+    } else {
+      df_ensure_not_kdf4(value) # TODO ensure clean of attrs?
+    }
+  })
+  result <- df_ensure_structural_keyed_df4(result, result_ukey_colnames)
+  result
+}
+
 
 # TODO nest and unnest, ...
 

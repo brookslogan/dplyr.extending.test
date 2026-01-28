@@ -240,3 +240,10 @@ new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
 
 # FIXME
 nest(new_keyed_df4(tibble(g = c(1,1,2,2), t = c(1:2, 1:2)), c("g", "t")), data = g)
+
+# TODO better ukey
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1)), c("g", "t")) %>%
+  slice_max(t, by = g)
+
+new_keyed_df4(tibble(g = c(1,1,2), t = c(1:2, 1), v = 1:3), c("g", "t")) %>%
+  slice_max(v, by = g)
