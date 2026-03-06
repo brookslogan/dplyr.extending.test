@@ -815,3 +815,5 @@ nest_join.keyed_df5 <- function(x, y, by = NULL, copy = FALSE, keep = NULL, name
 # TODO check for ukey_colnames redispatching all over the place... should not redispatch without converting to self first.
 
 # TODO pillar/tbl/whatever methods needed to get a better header
+
+# TODO could a more direct Result type help simplify some checks and/or restructuring operations?
