@@ -1,0 +1,81 @@
+* Ideas for another attempt at framework
+** eschew ?dplyr_extending
+- has nested dispatch, bad semantics, unless maybe do some trickery within impls
+  with class of arg / NextMethod call...
+- has format/class requirements; less general to build on top of, though might
+  only want to go so far as duckdb_tibbles rather than dbplyr and lazy_dt
+- still seemed like needed to implement most generics; only the simplest would
+  have been taken care of
+** extending applicability of data.table / duckplyr
+- they've already added support for packed tibble cols, matrices, vctrs vecs! or
+  not?...
+  - deprecated as_duckplyr_{df,tibble}() seem to support them
+  - non-deprecated as_duckdb_tibble() does not
+*** vctrs cols
+**** at all / non-prudent
+- probably just need to store vec_data in db + attrs outside, then restore on
+  demand for ops
+**** "prudently"
+***** attack a
+- have vctrs proxy col class
+  - impl a bunch of generics...
+    - somehow steal the impl of the underlying
+    - somehow send vec_data to db land
+    - what about vec_proxy?
+    - will duckdb even still try when it sees a function?
+  - something about vec_restore...
+  - ... can't detect `unclass`-ing...
+  - if detect other unsupported ops, then back off to "at all"?
+  - if encounter error (because proxy is not the real thing and used function
+    not intended for it directly on it...), message/warn + retry with "at all"
+    - provide some sort of switch to disable attempting prudent approach.
+**** intermediate?  non-prudent, but in chunks?
+***** attack b: function rewriting
+- search for vec_data and maybe vec_proxy + vec_restore usage, try to rewrite into...
+- will `{` make it give up?
+*** packing
+*** chopping
+- do partitions just get assigned an id, then make
+  - collapsed table involving REST and partition id
+  - expansion table involving partition id and CHOPPED
+  - unchopping is just a join
+- double-chopping
+  - fine, we just use the partition ads
+*** nesting
+- maybe can borrow chopping if use list_of?
+*** logically/actually-list_of cols involved in above
+*** list cols
+- something like a factor representation, like used in chopping above.
+** ukeyed
+** arranged
+** col role and multicol role tracking
+- ... this either needs to be central & depended on by ukeyed, etc.; or there
+  needs to be an interface for fetching roles from other things...
+** naming scheme requiring
+** lazy merges
+*** equality
+- (use in version-set archives? but then we need to augment ops with
+  fill-forward limits, and that may also need to be relative to confkeys, while
+  the naive version set from api may not be confkey-based, though maybe
+  as_epi_archive could make it into confkeys. but then would not be version-set
+  archive; would be confkey-set archives)
+*** rolling
+- makes into continuous-supported fn, seems complicated; might be forced into
+  this anyway with datetime versions, though
+** protovariables... key -> one val col
+- enables `+`, etc.
+- (vs. variables, which wait to take in data structure as well, so can get e.g., for training and for testing)
+** df grammar / type analogues
+- ukeyed df: function? df[ukey vars -> val vars]
+  - partial: df[ukey vars -> val vars] -> ukey subset -> df[ukey subset -> ukey complement -> val vars]
+- lookup 1 ukey: df[K->V] -> k -> df[V | K=k]
+- lookup multiple: df[K->V] -> ks -> df[V | K]? no, df[V | K ~ K']?
+- for conditioning... can have K as col or as attr. Need to allow flexibility
+  (for .keep=TRUE, maybe filter?).
+  - though for |K, can we even track as attr?  And do we need to?
+  - do we need different notation for when kept vs. not?
+  - think this felt like closures
+- chop X --> df[REST -> XS] ... or some sort of implicit join, backed
+  differently? extending-applicability chop for that
+** generic factors?
+- domain() generic?

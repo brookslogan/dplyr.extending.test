@@ -818,6 +818,12 @@ nest.keyed_df4 <- function (.data, ..., .by = NULL, .key = NULL, .names_sep = NU
   result
 }
 
+# #' @importFrom tidyr unnest
+# #' @export
+# unnest.keyed_df4 <- function (.data, ..., .by = NULL, .key = NULL, .names_sep = NULL) {
+# }
+
+
 
 # TODO nest and unnest, ...
 
