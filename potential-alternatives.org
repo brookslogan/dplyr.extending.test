@@ -57,6 +57,7 @@
 *** central
 - other things get to use its name-tracking... for simple ops at least, and just
   need to check whether invariants are preserved etc.
+  - except things aren't as simple as invariant validation for some verbs...
 - if have multiple invariants of same type want to track, then need to be
   careful... can't just grab attr in same way, as might be vectorized, and also,
   need to know which entry current layer refers to when stripping off classes
@@ -69,11 +70,30 @@
 *** noncentral
 ** borrowable-in-part/glue-able layers
 - thinking about cases
-  - if we want to be able to have a class definied as combining some layers, or
+  - if we want to be able to have a class defined as combining some layers, or
   - if we want to use the same verb impl as another layer for some set of verbs
 - instead of referring directly to own class name or constructor in impls, need
   to do something generic...
   - is this substantial overhead?
+- combining layers
+  - somehow unify into one wrapper?
+  - one more wrapper that checks preservation/manipulation of others?
+  - an outermost wrapper + an innermost wrapper?
+    - innermost wrapper can enable a "decay" method to know where to stop, but
+      if called from an intermediate wrapper, the wrappers outside are still
+      going to try to re-wrap
+  - non-dplyr/tidyr interface allowing to output enums representing
+    different actions?
+    - e.g., "decay", or something related to constructing a summary-type df?
+    - except actions probably depend on what want to do; can't pre-define; e.g.,
+      for ukeyed, we might want chop to register its output ukey, but that's not
+      really a concept for other wrappers
+    - can this be snuck into the dplyr/tidyr interface with transient return
+      wrappers?
+      - this might help with the intermediate-wrapper decay problem; could do
+        something to decay the inner wrappers + wrap the result in "decayed",
+        signaling to outer wrappers to give up, and the outermost to strip this
+        "decayed" wrapper.
 ** naming scheme requiring
 ** lazy merges
 *** equality
