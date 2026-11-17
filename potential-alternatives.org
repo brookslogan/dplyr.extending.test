@@ -44,13 +44,36 @@
 *** nesting
 - maybe can borrow chopping if use list_of?
 *** logically/actually-list_of cols involved in above
-*** list cols
+*** list_of cols
 - something like a factor representation, like used in chopping above.
+- potential nesting structure for list_of list_ofs, etc.
+*** list cols
+- ... one "levels" table per elt ptype?
 ** ukeyed
 ** arranged
 ** col role and multicol role tracking
 - ... this either needs to be central & depended on by ukeyed, etc.; or there
   needs to be an interface for fetching roles from other things...
+*** central
+- other things get to use its name-tracking... for simple ops at least, and just
+  need to check whether invariants are preserved etc.
+- if have multiple invariants of same type want to track, then need to be
+  careful... can't just grab attr in same way, as might be vectorized, and also,
+  need to know which entry current layer refers to when stripping off classes
+  etc.
+  - actually, getting to attr isn't so simple, assuming going with nested
+    structure design. but this might also mean that this will be part of class
+    vector of one layer rather than a deep layer, and then attr will not have
+    ambiguity. though might also go back to idea of crafing layer impls to be
+    borrowable in part / glue-able
+*** noncentral
+** borrowable-in-part/glue-able layers
+- thinking about cases
+  - if we want to be able to have a class definied as combining some layers, or
+  - if we want to use the same verb impl as another layer for some set of verbs
+- instead of referring directly to own class name or constructor in impls, need
+  to do something generic...
+  - is this substantial overhead?
 ** naming scheme requiring
 ** lazy merges
 *** equality
