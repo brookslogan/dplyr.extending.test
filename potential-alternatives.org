@@ -96,6 +96,17 @@
         "decayed" wrapper.
 ** naming scheme requiring
 ** lazy merges
+** overlap
+- mutate, transmute, hoist, pack, unpack
+  - ukey transformations... should creation of column based on ukey columns
+    potentially generate an additional ukey or ukeys, so that maybe old column
+    can be dropped and still leave a ukey intact? e.g., time+version -> time+lag.
+- transmute, rename, select
+- summarize, chop, nest
+- unchop, unnest
+- reframe with both above?
+- pivot* and separate*
+- filter, non-mutating joins, maybe also mutating joins
 *** equality
 - (use in version-set archives? but then we need to augment ops with
   fill-forward limits, and that may also need to be relative to confkeys, while
@@ -118,7 +129,7 @@
   - though for |K, can we even track as attr?  And do we need to?
   - do we need different notation for when kept vs. not?
   - think this felt like closures
-- chop X --> df[REST -> XS] ... or some sort of implicit join, backed
+- chop X --> df[(GRPCOLS,) REST -> XS] ... or some sort of implicit join, backed
   differently? extending-applicability chop for that
 ** generic factors?
 - domain() generic?
