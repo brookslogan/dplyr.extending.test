@@ -119,6 +119,14 @@
 ** protovariables... key -> one val col
 - enables `+`, etc.
 - (vs. variables, which wait to take in data structure as well, so can get e.g., for training and for testing)
+- to make dataset, keyset -> valset vars for modeling work naturally... can we
+  just use formula + protovariables, plus lazy data structures? Maybe
+  column-accessors should instead yield lazy protovariable edf/archives?
+  (Shouldn't be directly accessing, at least in archives, anyway, probably, so
+  having different expected class might not be so bad. Though at protovar level,
+  vectorized transformations each need an impl rather than just working, though
+  this does facilitate disabling "bad ideas" like improper lagging; might not be
+  too bad but might want to consider having it look like vanilla vector.)
 ** df grammar / type analogues
 - ukeyed df: function? df[ukey vars -> val vars]
   - partial: df[ukey vars -> val vars] -> ukey subset -> df[ukey subset -> ukey complement -> val vars]
